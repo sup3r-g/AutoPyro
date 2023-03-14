@@ -23,24 +23,30 @@ chart_dict = {
         {"label": "Zone 1", "pos": {"x": 200, "y": 500}, "angle": 45},
         {"label": "Zone 2", "pos": {"x": 200, "y": 500}, "angle": 45},
     ],
+    "properties": {
+        "name": "organic type",
+        "values": [1, 2, 3, 4]
+    },
     "data": {
-        "lines": [  # Lines approximated by A line type with params
+        "curves": [  # Lines approximated by A curve type with params
             {
                 "label": "I",
+                "property": 1,
                 "color": "green",
                 "marker": "+",
-                "type": "sigmoid",
+                "curve_type": "sigmoid",
                 "params": [],
             },
             {
-                "label": "I",
+                "label": "II",
+                "property": 2,
                 "color": "red",
                 "marker": "*",
-                "type": "sigmoid",
+                "curve_type": "sigmoid",
                 "params": [],
             },
         ],
-        "points": [  # Independent points not approximated by any line type
+        "points": [  # Independent points not approximated by any curve type
             {
                 "label": "Один",
                 "color": "green",
