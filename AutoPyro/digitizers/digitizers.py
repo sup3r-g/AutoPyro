@@ -1,60 +1,505 @@
-import numpy as np
-from skimage import (color, filters, io, measure, morphology, segmentation,
-                     transform, util)
-from dataclasses import dataclass
+import json
+import os
+import re
+from collections import defaultdict
+from typing import Any, Sequence, Union
 
-@dataclass(slots=True)
-class PlotDigitizer:
-    image: np.ndarray
-    binary_image: np.ndarray
-    lines: list[np.ndarray]
-    curves: list[np.ndarray]
-    transform_points: list[np.ndarray]
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import numpy as np
+import rasterio
+from affine import Affine
+from rasterio.plot import reshape_as_image
+from scipy import ndimage as ndi
+from shapely import simplify
+from shapely.geometry import LineString, MultiPolygon, Point, Polygon
+from shapely.ops import linemerge, polygonize, unary_union
+from shapely import contains
+from skimage import color, exposure, filters, io, measure, morphology, transform
+from sklearn.cluster import KMeans
+from svgelements import SVG, Path, Rect, Circle, Ellipse
+
+# from Real-ESRGAN import inference_realesrgan
+
+
+class SVGParse:
+    __slots__ = "svg", "name", "title", "image_coords", "plot_coords"
+    LABEL_TAG = re.compile(r'label="(.+?)"')
+    LABEL_PARSE = (
+        r"([\w\W ()]+): \(?([-/\d \w\.%]+)\)?(?:, ?)?(?:\(?([-/\d \w\.%]+)\)?)?"
+    )
+
+    def __init__(
+        self,
+        file_path: str,
+        plot_coords: list[list[float]],
+        image_coords: Union[list[list[float]], None] = None,
+    ) -> None:
+        self.svg = SVG.parse(file_path, transform="rotate(180)")
+        self.name = os.path.splitext(os.path.basename(file_path))[0]
+        self.title = os.path.basename(os.path.dirname(file_path))
+        # (x_min, y_min), (x_max, y_max)
+        self.image_coords = np.asarray(
+            image_coords if image_coords else self._find_image_coords()
+        )
+        # (x_min_real, y_min_real), (x_max_real, y_max_real)
+        self.plot_coords = np.asarray(plot_coords)
 
     @classmethod
-    def from_file(cls, image_file):
-        image = io.imread(image_file)
-        
-        return cls(image)
-    
-    def _find_lines(self, angles):
-        h, theta, d = transform.hough_line(self.binary_image, theta=angles)
-        
-        for i, (_, angle, dist) in enumerate(zip(*transform.hough_line_peaks(h, theta, d))):
-            (x0, y0) = dist * np.array([np.cos(angle), np.sin(angle)])
-            ang = np.tan(angle + np.pi / 2)
-            if np.isclose(ang, 0, atol=0.01):
-                ang = 0
-            elif np.isinf(ang):
-        
-        return (x1, y1), (x2, y2)
-    
-    def create_binary(self, block_size: int = 10, offset: int = 10):
-        gray_image = color.rgb2gray(color.rgba2rgb())
-        local_thresh = filters.threshold_local(gray_image, block_size, offset=offset)
-        self.binary_image = gray_image < local_thresh
-    
-    def find_axis_lines(self): 
-        x_angles = np.linspace(3*np.pi/8, 5*np.pi/8, 90, endpoint=True)
-        y_angles = np.linspace(-np.pi/8, np.pi/8, 90, endpoint=False)
-        other_angles = np.linspace(np.pi/8, 3*np.pi/8, 180, endpoint=False)
-        
-        x_axis = self._find_lines(x_angles)
-        y_axis = self._find_lines(y_angles)
+    def from_svg(
+        cls, svg_file: Union[str, os.PathLike], plot_coords: list[list[float]]
+    ) -> "SVGParse":
+        ext = os.path.splitext(os.path.basename(svg_file))[1]
+        if ext != ".svg":
+            raise ValueError("Supplied file not in SVG format")
 
-    def find_curves(self):
-        # contours = measure.find_contours(self.binary_image, 0.8)
-        skeleton = morphology.skeletonize(self.binary_image)
+        return cls(svg_file, plot_coords)
 
-        for contour in skeleton:
-            pass
-            # segmentation.flood_fill(binary_inv, (contour[0][1]-1, contour[0][0]-1), 255)
-            # contour[:, 1], contour[:, 0]  x, y
+    def _convert_coords(self, coords: list[tuple[float]], log: bool = False):
+        if log:
+            return 10 ** (
+                (
+                    (coords - self.image_coords[0])  # min
+                    * (
+                        np.log10(self.plot_coords[1]) - np.log10(self.plot_coords[0])
+                    )  # max - min
+                    / (self.image_coords[1] - self.image_coords[0])  # max - min
+                )
+                + np.log10(self.plot_coords[0])
+            )  # min
+        else:
+            return (
+                (coords - self.image_coords[0])  # min
+                * (self.plot_coords[1] - self.plot_coords[0])  # max - min
+                / (self.image_coords[1] - self.image_coords[0])  # max - min
+            ) + self.plot_coords[
+                0
+            ]  # min
+
+    def _find_image_coords(self) -> tuple[float]:
+        border_points = []
+        for element in self.svg.elements(lambda elem: isinstance(elem, Rect)):
+            # if isinstance(element, Circle):
+            #     border_points.append(element.point(0))
+            border_box = element.bbox()
+            border_points.extend(
+                [
+                    (border_box[0], border_box[1]),
+                    (border_box[2], border_box[3]),
+                ]
+            )
+
+        edge_points = np.array(border_points)
+        max_point = np.abs(edge_points.min(axis=0))
+        min_point = np.abs(edge_points.max(axis=0))
+
+        return min_point, max_point  # (x_min, y_min), (x_max, y_max)
+
+    def _extrapolate_curve_ends(
+        self, line: LineString, length_ratio: float = 0.1
+    ) -> LineString:
+        distance = line.length * length_ratio
+        p1, p2 = line.coords[:2]  # first_segment
+        angle = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])
+        start_point = Point(
+            p1[0] - distance * np.cos(angle), p1[1] - distance * np.sin(angle)
+        )
+
+        pn1, pn = line.coords[-2:]  # last_segment
+        angle = np.arctan2(pn[1] - pn1[1], pn[0] - pn1[0])
+        end_point = Point(
+            pn[0] + distance * np.cos(angle), pn[1] + distance * np.sin(angle)
+        )
+
+        return LineString([*start_point.coords, *line.coords[1:-1], *end_point.coords])
+
+    def _generate_curves(
+        self, step: int, divider: bool = False, log: bool = False
+    ) -> dict:
+        curves_dict = {}
+        for element in self.svg.elements(lambda elem: isinstance(elem, Path)):
+            points = element.npoint(np.linspace(0, 1, step))
+
+            points[:, 0] = np.abs(points[:, 0])
+            points[:, 1] = points[:, 1] + self.image_coords[:, 1].sum()
+            # y_min + y_max
+
+            points = self._convert_coords(points, log=log)
+
+            found_label = re.findall(self.LABEL_TAG, element.string_xml())
+            label = found_label[0] if found_label else None
+
+            if label:
+                label_name, *label_values = re.search(self.LABEL_PARSE, label).groups()
+                curves_dict[label] = {
+                    "color": element.stroke.hex,
+                    "width": element.stroke_width,
+                    "label": {
+                        "name": label_name,
+                        "value": [val for val in label_values if val],
+                        "divider": divider,
+                    },
+                    "equation": {"curve_type": None, "params": []},
+                    "points": {
+                        "x": points[:, 0].tolist(),
+                        "y": points[:, 1].tolist(),
+                    },
+                }
+
+        return curves_dict
+
+    def _find_area_markers(self, log: bool = False) -> list:
+        markers_list = []
+        for element in self.svg.elements(
+            lambda elem: isinstance(elem, (Circle, Ellipse))
+        ):
+            point = np.atleast_2d(element.point(0))
+
+            point[:, 0] = np.abs(point[:, 0])
+            point[:, 1] = point[:, 1] + self.image_coords[:, 1].sum()
+            # y_min + y_max
+
+            point = self._convert_coords(point, log=log)
+
+            found_label = re.findall(self.LABEL_TAG, element.string_xml())
+            label = found_label[0] if found_label else None
+
+            if label:
+                label_name, *label_values = re.search(self.LABEL_PARSE, label).groups()
+                markers_list.append((Point(point), (label_name, label_values[0])))
+
+        return markers_list
+
+    def _generate_areas(
+        self, curves_dict: dict, markers_list: list, length_ratio: float = 0.1
+    ) -> dict:
+        lines = [
+            self._extrapolate_curve_ends(
+                simplify(
+                    LineString(list(zip(*value["points"].values()))), tolerance=0.05
+                ),
+                length_ratio=length_ratio,
+            )
+            for value in curves_dict.values()
+        ]
+        # labels = [value["label"] for value in curves_dict.values()]
+
+        bounds = Polygon(
+            [
+                (self.plot_coords[0, 0], self.plot_coords[0, 1]),
+                (self.plot_coords[0, 0], self.plot_coords[1, 1]),
+                (self.plot_coords[1, 0], self.plot_coords[1, 1]),
+                (self.plot_coords[1, 0], self.plot_coords[0, 1]),
+            ]
+        )
+
+        lines.append(bounds.boundary)
+        lines = linemerge(lines)
+        lines = unary_union(lines)
+        polygons = [
+            polygon for polygon in polygonize(lines) if polygon.area > 1
+        ]  # if not np.allclose(polygon.area, 0)
+
+        markers_geometry = [point[0] for point in markers_list]
+        markers_labels = [point[1] for point in markers_list]
+        inclusions = np.array(
+            [contains(polygon, markers_geometry) for polygon in polygons]
+        )
+
+        areas_dict = {}
+        for i, j in np.argwhere(inclusions):
+            x, y = polygons[i].exterior.coords.xy
+            name, values = markers_labels[j]
+            areas_dict[f"{name}: {values}"] = {
+                "label": {"name": name, "value": values},
+                "points": {
+                    "x": x.tolist(),
+                    "y": y.tolist(),
+                },
+            }
+
+        # areas_dict = {}
+        # for label, (i, line) in zip(labels, enumerate(lines)):
+        #     sliced_part, bounds = split(bounds, line).geoms
+        #     print(1)
+        #     name = label["name"]
+        #     values = label["value"]
+        #     if i != len(lines) - 1:
+        #         x, y = sliced_part.exterior.coords.xy
+        #         areas_dict[f"{name}: {values[0]}"] = {
+        #             "label": {"name": name, "value": values[0]},
+        #             "points": {
+        #                 "x": x.tolist(),
+        #                 "y": y.tolist(),
+        #             },
+        #         }
+        #     else:
+        #         x, y = sliced_part.exterior.coords.xy
+        #         areas_dict[f"{name}: {values[0]}"] = {
+        #             "label": {"name": name, "value": values[0]},
+        #             "points": {
+        #                 "x": x.tolist(),
+        #                 "y": y.tolist(),
+        #             },
+        #         }
+        #         x, y = bounds.exterior.coords.xy
+        #         areas_dict[f"{name}: {values[1]}"] = {
+        #             "label": {"name": name, "value": values[1]},
+        #             "points": {
+        #                 "x": x.tolist(),
+        #                 "y": y.tolist(),
+        #             },
+        #         }
+
+        return areas_dict
+
+    def convert_to_dict(
+        self,
+        step: int = 1000,
+        divider: bool = False,
+        log: bool = False,
+        grid: bool = True,
+        legend: bool = True,
+    ) -> dict[str, Any]:
+        curves = self._generate_curves(step=step, divider=divider, log=log)
+        areas = (
+            self._generate_areas(curves, self._find_area_markers(log=log))
+            if divider
+            else {}
+        )
+
+        possible_labels = defaultdict(list)
+        for curve in curves.values():
+            lab = curve["label"]
+            possible_labels[lab["name"]].extend(lab["value"])
+
+        chart_dict = {
+            "name": self.name,
+            "title": self.title,
+            "settings": {
+                "xlim": tuple(
+                    self.plot_coords[:, 0].tolist()
+                ),  # [x_min_real, x_max_real]
+                "ylim": tuple(
+                    self.plot_coords[:, 1].tolist()
+                ),  # [y_min_real, y_max_real]
+                "log": log,
+                "grid": grid,
+                "legend": legend,
+            },
+            "labels": dict(possible_labels),
+            "data": {"curves": curves, "areas": areas},
+        }
+
+        return chart_dict
+
+    def convert_to_json(
+        self,
+        step: int = 1000,
+        divider: bool = False,
+        log: bool = False,
+        grid: bool = True,
+        legend: bool = True,
+    ) -> None:
+        with open(f"{self.name}.json", "w", encoding="utf-8") as fp:
+            json.dump(
+                self.convert_to_dict(step, divider, log, grid, legend), fp=fp, indent=4
+            )
 
 
-@dataclass(slots=True)
 class MapDigitizer:
-    image: np.ndarray
-    binary_image: np.ndarray
-    elements: list[np.ndarray]
-    georeference: np.ndarray 
+    __slots__ = "image", "elements", "crs", "transform", "scale"
+
+    def __init__(self, image: np.ndarray, crs: str, transform: Affine) -> None:
+        self.image = image
+        self.crs = crs
+        self.transform = transform
+        self.elements = []
+        self.scale = 1.0
+
+    @classmethod
+    def from_file(
+        cls, image_file: Union[str, os.PathLike], crs: str, transform: Affine
+    ) -> "MapDigitizer":
+        image = io.imread(image_file)
+
+        return cls(image=image, crs=crs, transform=transform)
+
+    @classmethod
+    def from_tif(
+        cls,
+        tif_file: Union[str, os.PathLike],
+        upscale: bool = False,
+        downscale_by: float = 1.0,
+    ) -> "MapDigitizer":
+        with rasterio.open(tif_file) as src:
+            image = reshape_as_image(src.read().astype(rasterio.uint8))
+            crs = src.crs
+            transform = src.transform
+
+        return cls(
+            image=cls._preprocess_image(
+                image, upscale=upscale, downscale_by=downscale_by
+            ),
+            crs=crs,
+            transform=transform,
+        )
+
+    # def upscale(self) -> np.ndarray:
+    #     inference_realesrgan.main(
+    #         {"model_name": "RealESRGAN_x4plus", "input": "inputs"}
+    #     )
+    #     image = io.imread(f"results/{image_file}")
+
+    #     return image
+
+    def _preprocess_image(
+        self, image: np.array, upscale: bool = False, downscale_by: float = 1.0
+    ) -> np.array:
+        if upscale:
+            downscale_by = (
+                2.0 if isinstance(downscale_by, None) else max(2.0, 1 / downscale_by)
+            )
+
+        if downscale_by:
+            image = transform.rescale(
+                image, 1 / downscale_by, anti_aliasing=True, channel_axis=-1
+            )
+            self.scale = downscale_by
+
+        image = exposure.equalize_adapthist(image, kernel_size=8)
+
+        return image
+
+    def _fix_image() -> None:
+        pass
+
+    def separate_color(
+        self, n_clusters: int, plot_pie_chart: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        image_lab = color.rgb2lab(self.image).reshape(
+            (self.image.shape[1] * self.image.shape[0], self.image.shape[2])
+        )
+        clustering_algorithm = KMeans(n_clusters=n_clusters).fit(image_lab)
+        centroid_image = clustering_algorithm.cluster_centers_
+        labels_image = clustering_algorithm.labels_
+
+        labels, percent = np.unique(labels_image, return_counts=True)
+        percent /= labels_image.shape[0]
+        colors = color.lab2rgb(centroid_image)
+
+        if plot_pie_chart:
+            plt.pie(
+                percent,
+                colors=colors,
+                labels=labels,
+            )
+
+        labels_array = labels_image.reshape(self.image.shape[0], self.image.shape[1])
+
+        return labels_array, colors
+
+    def create_polygons(
+        self, chosen_labels: Sequence, min_size: int = 100, kernel: np.array = 5
+    ):
+        labels_array = self.separate_color()
+
+        self.elements.clear()
+        for label in chosen_labels:
+            label_bool = labels_array == label
+            label_bool = np.fliplr(np.rot90(label_bool, k=3))
+
+            binary = ndi.binary_fill_holes(label_bool, structure=np.ones((20, 10)))
+
+            binary = filters.median(label_bool, morphology.square(kernel))
+            binary = morphology.remove_small_objects(binary, min_size)
+            binary = morphology.remove_small_holes(binary, min_size)
+            binary = morphology.binary_closing(binary, morphology.disk(kernel))
+
+            binary = ndi.binary_fill_holes(binary)
+
+            contours = measure.find_contours(binary, 0.9)
+            self.elements.append(
+                MultiPolygon([Polygon(contour) for contour in contours])
+            )
+
+        final_transform = np.array(self.transform.to_shapely()) * np.array(
+            [self.scale, 1, 1, self.scale, 1, 1]
+        )
+        gdf = gpd.GeoSeries(self.elements, crs=self.crs)
+        gdf = (
+            gdf.buffer(5.0, join_style=1)
+            .buffer(-5.0, join_style=1)
+            .affine_transform(final_transform)
+        )
+
+        return gdf
+
+
+# class PlotDigitizer:
+#     # __slots__ = (
+#     #     "image",
+#     #     "",
+#     # )
+
+#     def __init__(
+#         self,
+#         image: np.ndarray,
+#         binary_image: np.ndarray,
+#         lines: list[np.ndarray],
+#         curves: list[np.ndarray],
+#         transform_points: list[np.ndarray],
+#     ) -> None:
+#         self.image = image
+#         self.binary_image = binary_image
+#         self.lines = lines
+#         self.curves = curves
+#         self.transform_points = transform_points
+
+#     @classmethod
+#     def from_file(cls, image_file: Union[str, os.PathLike]):
+#         image = io.imread(image_file)
+#         if image.shape[2] > 3:
+#             image = color.rgba2rgb(image)
+
+#         return cls(image)
+
+#     def from_svg(cls, svg_file: Union[str, os.PathLike]):
+#         return SVGParse(svg_file).svg2json()
+
+#     def _find_lines(self, angles):
+#         h, theta, d = transform.hough_line(self.binary_image, theta=angles)
+
+#         for i, (_, angle, dist) in enumerate(
+#             zip(*transform.hough_line_peaks(h, theta, d))
+#         ):
+#             (x0, y0) = dist * np.array([np.cos(angle), np.sin(angle)])
+#             ang = np.tan(angle + np.pi / 2)
+#             if np.isclose(ang, 0, atol=0.01):
+#                 ang = 0
+#             elif np.isinf(ang):
+#                 pass
+
+#         return (x1, y1), (x2, y2)
+
+#     def create_binary(self, block_size: int = 10, offset: int = 10):
+#         gray_image = color.rgb2gray(self.image)
+#         local_thresh = filters.threshold_local(gray_image, block_size, offset=offset)
+#         self.binary_image = gray_image < local_thresh
+
+#     def find_axis_lines(self):
+#         x_angles = np.linspace(3 * np.pi / 8, 5 * np.pi / 8, 90, endpoint=True)
+#         y_angles = np.linspace(-np.pi / 8, np.pi / 8, 90, endpoint=False)
+#         other_angles = np.linspace(np.pi / 8, 3 * np.pi / 8, 180, endpoint=False)
+
+#         x_axis = self._find_lines(x_angles)
+#         y_axis = self._find_lines(y_angles)
+
+#     def find_curves(self):
+#         # contours = measure.find_contours(self.binary_image, 0.8)
+#         skeleton = morphology.skeletonize(self.binary_image)
+
+#         for contour in skeleton:
+#             pass
+#             # segmentation.flood_fill(binary_inv, (contour[0][1]-1, contour[0][0]-1), 255)
+#             # contour[:, 1], contour[:, 0]  x, y
