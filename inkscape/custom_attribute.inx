@@ -1,19 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
-  <name>Add Custom Attribute</name>
-  <id>org.inkscape.web.custom_attribute</id>
-    <!-- <param name="object" type="optiongroup" appearance="combo" gui-text="Select object:">
-      <option value="t">Top</option>
-      <option value="m">Middle</option>
-      <option value="b">Bottom</option>
-  </param> -->
-  <param name="namespace" type="string" gui-text="Attribute Namespace:"></param>
-  <param name="name" type="string" gui-text="Attribute Name:"></param>
-  <param name="values" type="string" gui-text="Attribute Values:"></param>
+  <name>Custom Attribute</name>
+  <id>autopyro.custom_attribute</id>
+  <param name="tab" type="notebook" gui-text="Namespaces">
+    <page name="autopyro" gui-text="AutoPyro">
+      <param name="namespace" type="string" gui-hidden="true">autopyro</param>
+      <param name="name" type="string" gui-text="Name:">maturity</param>
+      <param name="values" type="string" appearance="multiline" gui-text="Values:">II;III</param>
+    </page>
+    <page name="custom" gui-text="Custom">
+      <param name="namespace" type="string" gui-text="Custom:">my_namespace</param>
+      <param name="name" type="string" gui-text="Name:">my_name</param>
+      <param name="values" type="string" appearance="multiline" gui-text="Values:">1;2;3;4</param>
+    </page>
+    <page name="label" gui-text="From Label">
+      <param name="overwrite" type="bool" gui-text="Overwrite objects ID">false</param>
+    </page>
+  </param>
   <effect>
     <object-type>all</object-type>
     <effects-menu>
-      <submenu name="Web"/>
+      <submenu name="AutoPyro"/>
     </effects-menu>
   </effect>
   <script>
