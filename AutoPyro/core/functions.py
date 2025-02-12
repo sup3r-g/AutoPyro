@@ -1,5 +1,8 @@
 from numpy import exp, log, log10, sum
 
+__all__ = []
+
+
 def linear(x, a, b) -> float:
     """Linear trend model function"""
     return a * x + b
@@ -30,7 +33,7 @@ def polynomial(x, *coefficients) -> float:
     sum(a_i*x^i), i=0..n
     """
     # return a*x**2+b*x+c
-    return sum([c * x**i for i, c in enumerate(reversed(coefficients))])
+    return sum((c * x**i for i, c in enumerate(reversed(coefficients))))
 
 
 def gaussian(x, a, b, c, d):

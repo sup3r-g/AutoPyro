@@ -1,6 +1,6 @@
 from io import BytesIO
 from pathlib import Path
-from typing import Literal, Union
+from typing import Literal, Self, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -71,10 +71,13 @@ class DataTable:
         self.queries = []
         # self.register = ModelRegister()
 
+    def __getattr__(self, attr):
+        return getattr(self.table, attr)
+
     @classmethod
-    def from_file(cls, file: BytesIO, **pandas_kwargs) -> "DataTable":
+    def from_file(cls, file: BytesIO, **pandas_kwargs) -> Self:
         filepath = Path(file)
-        name, ext = filepath.stem, filepath.suffix
+        ext = filepath.suffix
 
         if ext == ".xlsx":
             data = pd.read_excel(file, **pandas_kwargs)
@@ -86,7 +89,7 @@ class DataTable:
         return cls(table=cls._clean_column_names(data))
 
     @classmethod
-    def from_dataframe(cls, dataframe: pd.DataFrame) -> "DataTable":
+    def from_dataframe(cls, dataframe: pd.DataFrame) -> Self:
         return cls(table=cls._clean_column_names(dataframe))
 
     @staticmethod
@@ -97,7 +100,7 @@ class DataTable:
 
         return table
 
-    def select(self, expression: str, overwrite: bool = False) -> None:
+    def select(self, expression: str, overwrite: bool = False) -> None | pd.DataFrame:
         if overwrite:
             self.table = self.table.query(expression)
         else:
@@ -141,8 +144,8 @@ class DataTable:
     #     return y_pred
 
     def get_statistics(
-        self, *columns, group: Union[str, None] = None, return_dict: bool = False
-    ) -> dict[str, dict]:
+        self, *columns, group: Union[str, None] = None, as_dict: bool = False
+    ) -> dict[Hashable, Any] | pd.DataFrame:
         columns = list(columns) if columns else self.table.columns
 
         if group is not None:
@@ -152,7 +155,7 @@ class DataTable:
 
         stats = table.describe(include="all").rename(columns=TRANSLATION_MAP)
 
-        if return_dict:
+        if as_dict:
             return stats.to_dict()
 
         return stats

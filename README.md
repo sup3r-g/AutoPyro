@@ -11,6 +11,8 @@ Includes such features as:
 
 Experimental features:
 * Machine Learning for data imputation (eg. construct a model to predict TOC on a number of other parameters such as XY-location, depositional environment and others);
-* Plot digitizer for custom user loaded plots;
+* Chart digitizer for custom user loaded plots;
 * Easy database access using the SQLAlchemy engine.
 
+https://github.com/cphyc/matplotlib-label-lines
+https://github.com/mathieu17g/matplotlib_inline_labels
