@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+  <name>Add Custom Attribute</name>
+  <id>org.inkscape.web.custom_attribute</id>
+    <!-- <param name="object" type="optiongroup" appearance="combo" gui-text="Select object:">
+      <option value="t">Top</option>
+      <option value="m">Middle</option>
+      <option value="b">Bottom</option>
+  </param> -->
+  <param name="namespace" type="string" gui-text="Attribute Namespace:"></param>
+  <param name="name" type="string" gui-text="Attribute Name:"></param>
+  <param name="values" type="string" gui-text="Attribute Values:"></param>
+  <effect>
+    <object-type>all</object-type>
+    <effects-menu>
+      <submenu name="Web"/>
+    </effects-menu>
+  </effect>
+  <script>
+    <command location="inx" interpreter="python">custom_attribute.py</command>
+  </script>
+</inkscape-extension>
