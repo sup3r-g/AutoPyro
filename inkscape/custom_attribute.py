@@ -33,8 +33,10 @@ class CustomAttribute(inkex.EffectExtension):
         )
         pars.add_argument("-n", "--name", type=str, default="", help="Name")
         pars.add_argument("-v", "--values", type=str, default="", help="Values")
-        pars.add_argument("-o", "--overwrite", type=bool, default=False, help="Overwrite objects ID")
-    
+        pars.add_argument(
+            "-o", "--overwrite", type=bool, default=False, help="Overwrite objects ID"
+        )
+
     @staticmethod
     def newNS(namespace, url="http://my_namespace.org/namespace"):
         NSS[namespace] = url
@@ -50,8 +52,8 @@ class CustomAttribute(inkex.EffectExtension):
         # registerNS(namespace, "http://my_namespace.org/namespace")
         self.newNS(namespace, "http://my_namespace.org/namespace")
         for element in self.svg.selection.values():
-            if tab == "label":
-                name, values = element.get("inkscape:label").split(": ")
+            if tab == "label" and (val := element.get("inkscape:label")):
+                name, values = val.split(":")
 
             element.set(f"{namespace}:{name}", values)
 

@@ -72,7 +72,7 @@ class HIo:
                 [
                     curve
                     for curve in plot.curves
-                    if curve.label.name == HIo.selector
+                    if curve.label.name == HIo.SELECTOR
                 ],
                 # Value with maximum y coordinate
                 key=lambda curve: curve.coords[0][1],
