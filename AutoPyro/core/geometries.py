@@ -16,7 +16,7 @@ from shapely import (
 )
 from shapely.coords import CoordinateSequence
 
-from AutoPyro.core.base import Equation, Label, LabelGeometry
+from AutoPyro.core.base import Direction, Equation, GeometryList, Label, LabelGeometry
 from AutoPyro.core.charts import CurveFitter
 from AutoPyro.core.functions import MODELS
 
@@ -54,6 +54,7 @@ class LabelArea(LabelGeometry):
     #         label=Label.from_dict(init_dict["label"]),
     #     )
 
+    # Remove this method
     def contains_points(
         self, *points: LabelPoint
     ) -> tuple[npt.NDArray, list[LabelPoint]]:
@@ -96,20 +97,17 @@ class LabelCurve(LabelGeometry):
     #         width=init_dict["width"],
     #     )
 
-    def points(self) -> npt.NDArray[CoordinateSequence]:
-        return np.asarray(self.coords)
-
     def fit(
         self, strategy: Literal["ols", "odr"], model: str = "linear", initial_guess=None
     ):
-        fitter = CurveFitter(*self.points())
+        fitter = CurveFitter(*np.asarray(self))  # self.points()
         if strategy == "ols":
             return fitter.fit_ols(model, initial_guess)
 
         if strategy == "odr":
             return fitter.fit_odr(model, initial_guess)
 
-    def resample_equation(self, x_new) -> Sequence[float]:
+    def resample_equation(self, x_new: Sequence[float]) -> Sequence[float]:
         # Add Shapely interpolate method here
         if not self.equation:
             raise AttributeError("curve_type is not defined for this curve")
@@ -120,9 +118,9 @@ class LabelCurve(LabelGeometry):
     #     pass
 
     def normals(
-        self, length: float = 50.0, direction: Literal["up", "down"] = "up"
+        self, length: float = 50.0, direction: Direction = "up"
     ) -> tuple[tuple[list[tuple[float, float]], Any], ...]:
-        x, y = self.points()
+        x, y = np.asarray(self)  # self.points()
         x1, y1, x2, y2 = x[:-1], y[:-1], x[1:], y[1:]
         x_vect, y_vect = x2 - x1, y2 - y1
         norm = (np.hypot(x_vect, y_vect) * 1 / length).flatten()
@@ -225,9 +223,8 @@ def ranked_distances(
             "Number of distances must me less or equal (<=) to number of 'points'"
         )
 
-    points_geoms = [
-        point.geometry for point in points
-    ]  # GeometryList(points).geometries
+    points_geoms = GeometryList(points).geometries
+    # [point.geometry for point in points]
     distances = [distance(curve.geometry, points_geoms) for curve in curves]
     # np.array()
     ranks = rankdata(distances, axis=0, method="dense", nan_policy="omit")
@@ -249,9 +246,8 @@ def ranked_distances(
 
 
 def minimal_distances(points: Sequence[LabelPoint], curves: Sequence[LabelCurve]):
-    points_geoms = [
-        point.geometry for point in points
-    ]  # GeometryList(points).geometries
+    points_geoms = GeometryList(points).geometries
+    # [point.geometry for point in points]
     distances = [distance(curve.geometry, points_geoms) for curve in curves]
     # np.array()
     # i - curve, j - point

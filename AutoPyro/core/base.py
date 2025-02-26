@@ -3,7 +3,7 @@ import os
 from copy import deepcopy
 from enum import Enum
 from itertools import chain
-from typing import Any, Iterable, Optional, Self
+from typing import Any, Generator, Iterable, Optional, Self
 
 import geopandas as gpd
 import numpy as np
@@ -110,12 +110,12 @@ class Label(Serializable):
 
 
 class LabelGeometry(Serializable):
-    __slots__ = "geometry", "label"
+    __slots__ = "geometry", "_label"
 
     def __init__(self, geometry: Geometry, label: Optional[Label] = None) -> None:
         super().__init__()
         self.geometry = geometry
-        self.label = label
+        self._label = label if label else Label("", "")
         # self.style = Style()
 
     def __array__(self) -> npt.NDArray[Any]:
@@ -128,7 +128,7 @@ class LabelGeometry(Serializable):
     def __getattr__(self, attr) -> Any:
         return getattr(self.geometry, attr)
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[Any, Any, None]:
         yield self.geometry.coords
 
     @property
@@ -137,6 +137,14 @@ class LabelGeometry(Serializable):
         return gpd.GeoDataFrame(
             self.label.to_dict(), geometry=[self.geometry], index=[0]
         ).__geo_interface__
+
+    @property
+    def label(self) -> Label | None:
+        return self._label
+
+    @label.setter
+    def label(self, value) -> None:
+        self._label = value
 
     @classmethod
     def make(
@@ -155,7 +163,7 @@ class LabelGeometry(Serializable):
     #     return self.__geo_interface__
 
     def has_label(self) -> bool:
-        return bool(self.label)
+        return bool(self._label)
 
 
 class GeometryList(list):

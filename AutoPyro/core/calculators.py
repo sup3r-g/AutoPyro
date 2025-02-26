@@ -16,7 +16,7 @@ from AutoPyro.core.geometries import (
 from AutoPyro.core.charts import Chart
 
 
-class TransformationRate:
+class TransformationRatio:
     # Transformation Ratio
     COLUMN_NAME = "TR"
 
@@ -66,44 +66,39 @@ class HIo:
                 for x, y in zip(T_max, HI)
                 # if not np.isnan(x) and not np.isnan(y)
             ]
-
-            # Add 0 line to analyze 3 type
             hi_curves = sorted(
-                [
-                    curve
-                    for curve in plot.curves
-                    if curve.label.name == HIo.SELECTOR
-                ],
+                [curve for curve in plot.curves if curve.label.name == HIo.SELECTOR],
                 # Value with maximum y coordinate
                 key=lambda curve: curve.coords[0][1],
                 reverse=True,
             )
-            target_coords = hi_curves[-1].coords
-            hi_curves.append(
-                LabelCurve(
-                    [
-                        (x, 0)
-                        for x in np.linspace(
-                            target_coords[0][0],
-                            target_coords[-1][0],
-                            len(target_coords),
-                        )
-                    ],
-                    Label(hi_curves[-1].label.name, "IV"),
+
+            # Add 0 line to analyze 3 type
+            if len(hi_curves) <= 3:
+                target_coords = hi_curves[-1].coords
+                hi_curves.append(
+                    LabelCurve(
+                        [
+                            (x, 0)
+                            for x in np.linspace(
+                                target_coords[0][0],
+                                target_coords[-1][0],
+                                len(target_coords),
+                            )
+                        ],
+                        Label(hi_curves[-1].label.name, "IV"),
+                    )
                 )
-            )
 
             # Now transform curves into geometries
             ratios = np.linspace(0, 1, 25 + 1)
             curves_map = []
             for one, two in zip(hi_curves[1:], hi_curves[:-1]):
-                curves_map.extend(
-                    list(average_curves(one, two, ratios).values())
-                )
+                curves_map.extend(list(average_curves(one, two, ratios).values()))
 
             return [
                 curves_map[i].points()[0]
-                for _, i in enumerate(minimal_distances(labelled_points, curves_map))
+                for i in minimal_distances(labelled_points, curves_map)
             ]
 
 
@@ -200,8 +195,8 @@ class TOCo:
             return result
 
 
-CALCULATORS_MAP = {"HIo": HIo, "TOCo": TOCo, "TR": TR}
+CALCULATORS_MAP = {"HIo": HIo, "TOCo": TOCo, "TR": TransformationRatio}
 
 if __name__ == "__main__":
-    print(TransformationRate.COLUMN_NAME)
+    print(TransformationRatio.COLUMN_NAME)
     print(HIo.Cornford_2001()(600, 430))

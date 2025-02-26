@@ -7,9 +7,11 @@ from scipy import odr
 from scipy.optimize import curve_fit
 from shapely import contains
 
-from AutoPyro.core.base import Serializable, GeometryList
+from AutoPyro.core.base import GeometryList, Serializable
 from AutoPyro.core.functions import MODELS
 from AutoPyro.core.geometries import LabelArea, LabelCurve, LabelPoint, ranked_distances
+
+COMPONENTS = Literal["curves", "areas", "points"]
 
 
 class CurveFitter:
@@ -54,7 +56,7 @@ class Chart(Serializable):
     def __init__(
         self,
         name: str,
-        limits: tuple,
+        # limits: tuple,
         curves: Iterable[LabelCurve],
         areas: Optional[Iterable[LabelArea]] = None,
         points: Optional[Iterable[LabelPoint]] = None,
@@ -75,7 +77,7 @@ class Chart(Serializable):
     def from_dict(cls, init_dict: dict[str, Any]) -> Self:
         return cls(
             init_dict["name"],
-            limits=(init_dict["settings"]["xlim"], init_dict["settings"]["ylim"]),
+            # limits=(init_dict["settings"]["xlim"], init_dict["settings"]["ylim"]),
             curves=[
                 LabelCurve.from_dict(curve)
                 for curve in init_dict["data"]["curves"].values()
@@ -102,11 +104,13 @@ class Chart(Serializable):
                 )
 
     def to_dataframe(
-        self, component: Literal["curves", "areas", "points"] = "points"
+        self,
+        component: COMPONENTS = "points",
+        **geopandas_kwargs,
     ) -> pd.DataFrame:
-        return getattr(self, component).to_geopandas()
+        return getattr(self, component).to_geopandas(**geopandas_kwargs)
 
-    def geometries(self, component: Literal["curves", "points", "areas"]):
+    def geometries(self, component: COMPONENTS):
         try:
             return getattr(self, component).geometries
         except AttributeError as exc:
