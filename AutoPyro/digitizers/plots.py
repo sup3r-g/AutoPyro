@@ -7,6 +7,16 @@ from typing import Any, Self, Sequence, Union
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
+from AutoPyro.core.json_models import (
+    AreaModel,
+    CurveModel,
+    DataModel,
+    EquationModel,
+    LabelModel,
+    PlotModel,
+    PlotSettingsModel,
+    PointModel,
+)
 import rasterio as rio
 from affine import Affine
 from rasterio.plot import reshape_as_image
@@ -129,20 +139,23 @@ class SVGParse:
             if found_label := re.findall(self.LABEL_TAG, element.string_xml()):
                 label = found_label[0]
                 label_name, *label_values = re.search(self.LABEL_PARSE, label).groups()
-                curves_dict[label] = {
-                    "color": element.stroke.hex,
-                    "width": element.stroke_width,
-                    "label": {
-                        "name": label_name,
-                        "value": [val for val in label_values if val],
-                        "divider": divider,
-                    },
-                    "equation": {"curve_type": None, "params": []},
-                    "points": {
-                        "x": points[:, 0].tolist(),
-                        "y": points[:, 1].tolist(),
-                    },
-                }
+                curves_dict[label] = CurveModel(
+                    color=element.stroke.hex,
+                    width=element.stroke_width,
+                    label=LabelModel(
+                        name=label_name,
+                        value=[val for val in label_values if val],
+                    ),
+                    divider=divider,
+                    equation=EquationModel(curve_type=None, params=[]),
+                    points=[
+                        PointModel(
+                            x=points[:, 0].tolist(),
+                            y=points[:, 1].tolist(),
+                            label=LabelModel("", ""),
+                        )
+                    ],
+                )
 
         return curves_dict
 
@@ -189,8 +202,7 @@ class SVGParse:
         )
 
         lines.append(bounds.boundary)
-        lines = linemerge(lines)
-        lines = unary_union(lines)
+        lines = unary_union(linemerge(lines))
         polygons = [
             polygon for polygon in polygonize(lines) if polygon.area > 1
         ]  # if not np.allclose(polygon.area, 0)
@@ -203,46 +215,55 @@ class SVGParse:
         for i, j in np.argwhere(inclusions):
             x, y = polygons[i].exterior.coords.xy
             name, values = markers_labels[j]
-            areas_dict[f"{name}: {values}"] = {
-                "label": {"name": name, "value": values},
-                "points": {
-                    "x": x.tolist(),
-                    "y": y.tolist(),
-                },
-            }
+            areas_dict[f"{name}: {values}"] = AreaModel(
+                label=LabelModel(name=name, value=values),
+                points=[
+                    PointModel(
+                        x=x.tolist(), y=y.tolist(), label=LabelModel("", "")
+                    )
+                ],
+            )
 
         # areas_dict = {}
         # for label, (i, line) in zip(labels, enumerate(lines)):
         #     sliced_part, bounds = split(bounds, line).geoms
-        #     print(1)
         #     name = label["name"]
         #     values = label["value"]
         #     if i != len(lines) - 1:
         #         x, y = sliced_part.exterior.coords.xy
-        #         areas_dict[f"{name}: {values[0]}"] = {
-        #             "label": {"name": name, "value": values[0]},
-        #             "points": {
-        #                 "x": x.tolist(),
-        #                 "y": y.tolist(),
-        #             },
-        #         }
+        #         areas_dict[f"{name}: {values[0]}"] = AreaModel(
+        #             label=LabelModel(name=name, value=values[0]),
+        #             points=[
+        #                 PointModel(
+        #                     x=x.tolist(),
+        #                     y=y.tolist(),
+        #                     label=LabelModel("", ""),
+        #                 )
+        #             ],
+        #         )
         #     else:
         #         x, y = sliced_part.exterior.coords.xy
-        #         areas_dict[f"{name}: {values[0]}"] = {
-        #             "label": {"name": name, "value": values[0]},
-        #             "points": {
-        #                 "x": x.tolist(),
-        #                 "y": y.tolist(),
-        #             },
-        #         }
+        #         areas_dict[f"{name}: {values[0]}"] = AreaModel(
+        #             label=LabelModel(name=name, value=values[0]),
+        #             points=[
+        #                 PointModel(
+        #                     x=x.tolist(),
+        #                     y=y.tolist(),
+        #                     label=LabelModel("", ""),
+        #                 )
+        #             ],
+        #         )
         #         x, y = bounds.exterior.coords.xy
-        #         areas_dict[f"{name}: {values[1]}"] = {
-        #             "label": {"name": name, "value": values[1]},
-        #             "points": {
-        #                 "x": x.tolist(),
-        #                 "y": y.tolist(),
-        #             },
-        #         }
+        #         areas_dict[f"{name}: {values[1]}"] = AreaModel(
+        #             label=LabelModel(name=name, value=values[1]),
+        #             points=[
+        #                 PointModel(
+        #                     x=x.tolist(),
+        #                     y=y.tolist(),
+        #                     label=LabelModel("", ""),
+        #                 )
+        #             ],
+        #         )
 
         return areas_dict
 
@@ -266,19 +287,19 @@ class SVGParse:
             lab = curve["label"]
             possible_labels[lab["name"]].extend(lab["value"])
 
-        chart_dict = {
-            "name": self.name,
-            "title": self.title,
-            "settings": {
-                "xlim": self.plot_coords[:, 0].tolist(),  # [x_min_real, x_max_real]
-                "ylim": self.plot_coords[:, 1].tolist(),  # [y_min_real, y_max_real]
-                "log": log,
-                "grid": grid,
-                "legend": legend,
-            },
-            "labels": dict(possible_labels),
-            "data": {"curves": curves, "areas": areas},
-        }
+        chart_dict = PlotModel(
+            name=self.name,
+            title=self.title,
+            settings=PlotSettingsModel(
+                xlim=self.plot_coords[:, 0].tolist(),  # [x_min_real, x_max_real]
+                ylim=self.plot_coords[:, 1].tolist(),  # [y_min_real, y_max_real]
+                log=log,
+                grid=grid,
+                legend=legend,
+            ),
+            labels=dict(possible_labels),
+            data=DataModel(curves=curves, areas=areas, points=[]),
+        )
 
         return chart_dict
 

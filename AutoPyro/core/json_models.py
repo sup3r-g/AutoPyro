@@ -18,29 +18,29 @@ class EquationModel:
 
 @dataclass
 class PointModel:
-    name: str
     x: Sequence[float]
     y: Sequence[float]
     label: LabelModel
+    name: str = ""
 
 
 @dataclass
 class CurveModel:
-    name: str  # "GENERATION POTENTIAL: Very good, Good"
     color: ColorType
     width: float
     label: LabelModel
     divider: Optional[bool]
     equation: EquationModel
     points: Sequence[PointModel]
+    name: str = ""  # "GENERATION POTENTIAL: Very good, Good"
 
 
 @dataclass
 class AreaModel:
-    name: str  # "GENERATION POTENTIAL: Fair"
     label: LabelModel
-    equation: EquationModel
+    # equation: EquationModel
     points: Sequence[PointModel]
+    name: str = ""  # "GENERATION POTENTIAL: Fair"
 
 
 @dataclass
@@ -54,10 +54,10 @@ class DataModel:
 class PlotSettingsModel:
     xlim: tuple[float, float]  # (0.1, 1000.0)
     ylim: tuple[float, float]  # (0.1, 1000.0)
-    zlim: Optional[tuple[float, float]]  # (0.1, 1000.0)
     log: bool
     grid: bool
     legend: bool
+    zlim: Optional[tuple[float, float]] = None  # (0.1, 1000.0)
 
 
 @dataclass

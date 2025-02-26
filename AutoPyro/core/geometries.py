@@ -14,7 +14,6 @@ from shapely import (
     distance,
     line_interpolate_point,
 )
-from shapely.coords import CoordinateSequence
 
 from AutoPyro.core.base import Direction, Equation, GeometryList, Label, LabelGeometry
 from AutoPyro.core.charts import CurveFitter

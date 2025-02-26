@@ -104,9 +104,7 @@ class Chart(Serializable):
                 )
 
     def to_dataframe(
-        self,
-        component: COMPONENTS = "points",
-        **geopandas_kwargs,
+        self, component: COMPONENTS = "points", **geopandas_kwargs
     ) -> pd.DataFrame:
         return getattr(self, component).to_geopandas(**geopandas_kwargs)
 
