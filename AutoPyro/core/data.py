@@ -28,14 +28,24 @@ TRANSLATION_MAP = {
 }
 
 
-# class ModelRegister:
-#     __slots__ = "models"
+# class ModelRegister(dict):
 
-#     def __init__(self) -> None:
-#         self.models: dict[str, CatBoostRegressor] = {}
+#     DEFAULT_PARAMS = {
+#         "learning_rate": 0.05,
+#         "loss_function": "RMSE",
+#         "eval_metric": "RMSE",
+#         "task_type": "CPU",
+#         "iterations": 2000,
+#         "verbose": False,
+#     }
+
+#     def keys_of(self, value):
+#         for k, v in self.items():
+#             if v == value:
+#                 yield k
 
 #     def add(self, name: str, model: CatBoostRegressor, overwrite: bool = False) -> None:
-#         if name in self.models.keys() and not overwrite:
+#         if name in self and not overwrite:
 #             raise KeyError(
 #                 f"{name} is already in use. To overwrite model in the registry use overwrite=True."
 #             )
@@ -43,36 +53,30 @@ TRANSLATION_MAP = {
 #         if overwrite:
 #             print("Overwrite enabled.")
 
-#         self.models[name] = model
+#         self[name] = model
 
 #     def delete(self, name: str) -> None:
-#         if name not in self.models.keys():
+#         if name not in self:
 #             raise KeyError(f"Can't delete. Model '{name}' is not in use.")
 
-#         del model
-#         del self.models[name]
+#         del self[name]
 
 
 class DataTable:
-    __slots__ = "table", "queries", "register"
-
-    DEFAULT_PARAMS = {
-        "learning_rate": 0.05,
-        "loss_function": "RMSE",
-        "eval_metric": "RMSE",
-        "task_type": "CPU",
-        "iterations": 2000,
-        "verbose": False,
-    }
+    __slots__ = "table", "__queries", "register"
     PATTERN = r", | \("
 
     def __init__(self, table: pd.DataFrame) -> None:
         self.table = table
-        self.queries = []
+        self.__queries = []
         # self.register = ModelRegister()
 
     def __getattr__(self, attr):
         return getattr(self.table, attr)
+
+    @property
+    def queries(self) -> list[Any]:
+        return self.__queries
 
     @classmethod
     def from_file(cls, file: BytesIO, **pandas_kwargs) -> Self:

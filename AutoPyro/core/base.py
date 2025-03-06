@@ -87,7 +87,7 @@ class Equation(Serializable):
         return self.__class__(self.curve_type, self.params)
 
 
-class Label(Serializable):
+class Label(Serializable):  # pd.Series
     __slots__ = "name", "value"
 
     def __init__(self, name: str, value: str | int) -> None:
@@ -104,6 +104,9 @@ class Label(Serializable):
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__} → {self.name}: {self.__str_value()}"
+
+    def __bool__(self) -> bool:
+        return bool(self.name)
 
     def copy(self):
         return Label(self.name, self.value)
@@ -162,9 +165,6 @@ class LabelGeometry(Serializable):
     # def to_dict(self) -> dict[str, Any]:
     #     return self.__geo_interface__
 
-    def has_label(self) -> bool:
-        return bool(self._label)
-
 
 class GeometryList(list):
     def __init__(self, iterable: Optional[Iterable[LabelGeometry]] = None) -> None:
@@ -184,7 +184,7 @@ class GeometryList(list):
 
     @property
     def labels(self) -> list[tuple]:
-        return [item.label.to_tuple() for item in self]  # if item.has_label()
+        return [item.label.to_tuple() for item in self]  # if item.label
 
     def insert(self, index, item) -> None:
         super().insert(index, self.__validate(item))
