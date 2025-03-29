@@ -16,13 +16,12 @@ class ImagePlotDigitizer:
     def __init__(
         self,
         image: np.ndarray,
-        binary_image: np.ndarray,
         lines: list[np.ndarray],
         curves: list[np.ndarray],
         transform_points: list[np.ndarray],
     ) -> None:
         self.image = image
-        self.binary_image = binary_image
+        self.binary_image = None
         self.lines = lines
         self.curves = curves
         self.transform_points = transform_points

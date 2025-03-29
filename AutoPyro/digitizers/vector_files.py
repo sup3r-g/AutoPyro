@@ -23,6 +23,25 @@ from AutoPyro.core.json_models import (
 )
 
 
+def extrapolate_curve(line: LineString, length_ratio: float = 0.1) -> LineString:
+    distance = line.length * length_ratio
+    # First Segment (1, 2)
+    point_1, point_2 = line.coords[:2]
+    angle = np.arctan2(point_2[1] - point_1[1], point_2[0] - point_1[0])
+    start_point = Point(
+        point_1[0] - distance * np.cos(angle), point_1[1] - distance * np.sin(angle)
+    )
+
+    # Last Segment (n-1, n)
+    point_n1, point_n = line.coords[-2:]
+    angle = np.arctan2(point_n[1] - point_n1[1], point_n[0] - point_n1[0])
+    end_point = Point(
+        point_n[0] + distance * np.cos(angle), point_n[1] + distance * np.sin(angle)
+    )
+
+    return LineString([*start_point.coords, *line.coords[1:-1], *end_point.coords])
+
+
 class SVGParse:
     __slots__ = "svg", "name", "title", "image_coords", "plot_coords"
     LABEL_TAG = re.compile(r'label="(.+?)"')
@@ -71,6 +90,7 @@ class SVGParse:
                 )
                 + np.log10(self.plot_coords[0])
             )  # min
+        # TODO: add polar coordinates?
 
         return (
             (coords - self.image_coords[0])  # min
@@ -82,9 +102,8 @@ class SVGParse:
 
     def _find_image_coords(self) -> tuple[float, ...]:
         border_points = []
+        # Get all Rectangles present in the image
         for element in self.svg.elements(lambda elem: isinstance(elem, Rect)):
-            # if isinstance(element, Circle):
-            #     border_points.append(element.point(0))
             border_box = element.bbox()
             border_points.extend(
                 [
@@ -93,29 +112,12 @@ class SVGParse:
                 ]
             )
 
+        # Find edge points
         edge_points = np.array(border_points)
         max_point = np.abs(edge_points.min(axis=0))
         min_point = np.abs(edge_points.max(axis=0))
 
         return min_point, max_point  # (x_min, y_min), (x_max, y_max)
-
-    def _extrapolate_curve_ends(
-        self, line: LineString, length_ratio: float = 0.1
-    ) -> LineString:
-        distance = line.length * length_ratio
-        p1, p2 = line.coords[:2]  # first_segment
-        angle = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])
-        start_point = Point(
-            p1[0] - distance * np.cos(angle), p1[1] - distance * np.sin(angle)
-        )
-
-        pn1, pn = line.coords[-2:]  # last_segment
-        angle = np.arctan2(pn[1] - pn1[1], pn[0] - pn1[0])
-        end_point = Point(
-            pn[0] + distance * np.cos(angle), pn[1] + distance * np.sin(angle)
-        )
-
-        return LineString([*start_point.coords, *line.coords[1:-1], *end_point.coords])
 
     def _generate_curves(
         self, step: int, divider: bool = False, log: bool = False
@@ -128,6 +130,7 @@ class SVGParse:
             # y_min + y_max
             points = self._convert_coords(points, log=log)
 
+            # TODO: rework label logic because we won't use the old one
             if found_label := re.findall(self.LABEL_TAG, element.string_xml()):
                 label = found_label[0]
                 label_name, *label_values = re.search(self.LABEL_PARSE, label).groups()
@@ -151,6 +154,8 @@ class SVGParse:
 
         return curves_dict
 
+    # TODO: Remove this method because we won't need it in with attribute labels
+    # `autopyro:label=value``
     def _find_area_markers(self, log: bool = False) -> list:
         markers_list = []
         for element in self.svg.elements(
@@ -162,6 +167,7 @@ class SVGParse:
             # y_min + y_max
             point = self._convert_coords(point, log=log)
 
+            # TODO: rework label logic because we won't use the old one
             if found_label := re.findall(self.LABEL_TAG, element.string_xml()):
                 label_name, *label_values = re.search(
                     self.LABEL_PARSE, found_label[0]
@@ -174,7 +180,7 @@ class SVGParse:
         self, curves_dict: dict, markers_list: list, length_ratio: float = 0.1
     ) -> dict:
         lines = [
-            self._extrapolate_curve_ends(
+            extrapolate_curve(
                 simplify(
                     LineString(list(zip(*value["points"].values()))), tolerance=0.05
                 ),
@@ -199,6 +205,7 @@ class SVGParse:
             polygon for polygon in polygonize(lines) if polygon.area > 1
         ]  # if not np.allclose(polygon.area, 0)
 
+        # TODO: remove, since we won't need this
         markers_geometry = [point[0] for point in markers_list]
         markers_labels = [point[1] for point in markers_list]
         inclusions = np.array([contains(poly, markers_geometry) for poly in polygons])
@@ -213,6 +220,8 @@ class SVGParse:
                     PointModel(x=x.tolist(), y=y.tolist(), label=LabelModel("", ""))
                 ],
             )
+
+        # Dunno what to dom with this code
 
         # areas_dict = {}
         # for label, (i, line) in zip(labels, enumerate(lines)):
@@ -272,6 +281,7 @@ class SVGParse:
             else {}
         )
 
+        # Ugly, very ugly
         possible_labels = defaultdict(list)
         for curve in curves.values():
             lab = curve["label"]

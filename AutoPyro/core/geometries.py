@@ -34,12 +34,6 @@ class LabelPoint(LabelGeometry):
     #     )
 
 
-class LabelMultiPoint(LabelGeometry):
-
-    def __init__(self, *points: Point, label: Optional[Label] = None) -> None:
-        super().__init__(MultiPoint(points), label)
-
-
 class LabelArea(LabelGeometry):
     # Area = Polygon
 
@@ -113,8 +107,8 @@ class LabelCurve(LabelGeometry):
 
         return MODELS[self.curve_type](x_new, *self.params)
 
-    # def resample_interp(self, x_new):
-    #     pass
+    def resample_interpolate(self, x_new: Sequence[float]):
+        return line_interpolate_point(self.geometry, x_new, normalized=True)
 
     def normals(
         self, length: float = 50.0, direction: Direction = "up"
@@ -132,10 +126,16 @@ class LabelCurve(LabelGeometry):
         raise ValueError("Invalid 'direction' value")
 
 
+class LabelMultiPoint(LabelGeometry):
+
+    def __init__(self, *points: Point, label: Optional[Label] = None) -> None:
+        super().__init__(MultiPoint(points), label)
+
+
 class LabelMultiCurve(LabelGeometry):
     # MultiCurve = MultiLineString
 
-    def __init__(self, lines: LineString, label: Optional[Label] = None) -> None:
+    def __init__(self, *lines: LineString, label: Optional[Label] = None) -> None:
         super().__init__(MultiLineString(lines), label)
 
 
@@ -173,27 +173,6 @@ def average_curves(
             "Both of the curves must be of type 'LabelCurve'",
             f"Provided Types: {type(curve_one)}, {type(curve_two)}",
         )
-
-    if curve_one.intersects(curve_two.geometry):
-        # TODO: Rework this stuff
-        xy = sorted(
-            list(curve_one.intersection(curve_two.geometry).geoms),
-            # Value with maximum y coordinate
-            key=lambda curve: curve.xy[1],
-            reverse=True,
-        )
-
-        coords = list(curve_one.coords)
-        for i, p in enumerate(coords):
-            point_dist = curve_one.project(Point(p))
-            if point_dist == distance:
-                curve_one = LineString(coords[: i + 1])
-
-        coords = list(curve_two.coords)
-        for i, p in enumerate(coords):
-            point_dist = curve_one.project(Point(p))
-            if point_dist == distance:
-                curve_two = LineString(coords[: i + 1])
 
     if len(curve_one.coords) != len(curve_two.coords):
         curve_one, curve_two = resample_equal_points(
