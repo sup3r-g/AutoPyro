@@ -20,23 +20,33 @@ class GenerativePotential(BaseClassifier):
 
 
 # IMPORTANT: New stuff
-class ValueClassifier(BaseClassifier):
+class ValueClassifier:
     # TABLE = pd.read_json()
 
     @classmethod
-    def classify_single(cls, value: Any) -> tuple[str, float]:
+    def classify(cls, *values: Any) -> tuple[str, float]:
         table = cls.TABLE
         return pd.cut(
-            value,
-            bins=table[type(value).__name__].to_list(),
+            values,
+            bins=table[type(values[0]).__name__].to_list(),
             labels=table.index,
             include_lowest=True,
             right=False,
         )
 
+
+class ConditionalClassifier:
+    # TABLE = pd.read_json()
+
     @classmethod
-    def classify_multi(cls, values) -> tuple[str, float]:
-        return cls.classify_single(values)
+    def classify(cls, *values: Any) -> tuple[str, float]:
+        table = cls.TABLE  # ["condition", "value"]
+        response = []
+        # pd.eval()
+        for cond in table["condition"]:
+            pass
+
+        return response
 
 
 CLASSIFIERS_MAP = {

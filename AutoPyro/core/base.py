@@ -192,19 +192,19 @@ class GeometryList(list):
     def append(self, item) -> None:
         super().append(self.__validate(item))
 
-    def to_geopandas(self, pandas: bool = False) -> pd.Series:
-        return gpd.GeoSeries(
-            data=[item.geometry for item in self],
-            index=[item.label.value for item in self],
-            name=self[0].label.name,
+    def to_geopandas(self, pandas: bool = False) -> gpd.GeoDataFrame:
+        if not pandas:
+            return gpd.GeoDataFrame(
+                [item.label.value for item in self],
+                geometry=[item.geometry for item in self],
+            )
+
+        return pd.DataFrame(
+            [
+                [item.label.value for item in self]
+                [item.geometry for item in self]
+            ],
         )
-        # return pd.DataFrame(
-        #     [
-        #         [*item.coords, *item.label.tuple()]
-        #         for item in self
-        #     ],
-        #     columns=[""],
-        # )  # X_name, Y_name
 
     def extend(self, other) -> None:
         if isinstance(other, type(self)):

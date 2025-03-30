@@ -25,6 +25,7 @@ from AutoPyro.core.json_models import (
 
 def extrapolate_curve(line: LineString, length_ratio: float = 0.1) -> LineString:
     distance = line.length * length_ratio
+
     # First Segment (1, 2)
     point_1, point_2 = line.coords[:2]
     angle = np.arctan2(point_2[1] - point_1[1], point_2[0] - point_1[0])
@@ -96,9 +97,7 @@ class SVGParse:
             (coords - self.image_coords[0])  # min
             * (self.plot_coords[1] - self.plot_coords[0])  # max - min
             / (self.image_coords[1] - self.image_coords[0])  # max - min
-        ) + self.plot_coords[
-            0
-        ]  # min
+        ) + self.plot_coords[0]  # min
 
     def _find_image_coords(self) -> tuple[float, ...]:
         border_points = []
@@ -152,7 +151,7 @@ class SVGParse:
                     ],
                 )
 
-        return curves_dict
+        return asdict(curves_dict)
 
     # TODO: Remove this method because we won't need it in with attribute labels
     # `autopyro:label=value``

@@ -218,7 +218,7 @@ def ranked_distances(
         for i, j in indices:
             result[j][i] = (ranks[i, j], distances[i][j])  # [i, j]
 
-        # print("Schema: {point_id: {curve_id: (rank, distance)}}")
+        # {point_id: {curve_id: (rank, distance)}}
 
     return dict(result)
 

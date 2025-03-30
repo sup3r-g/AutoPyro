@@ -14,12 +14,6 @@
 #lines.solid_joinstyle: round       # {miter, round, bevel}
 #lines.solid_capstyle:  projecting  # {butt, round, projecting}
 
-## The three standard dash patterns.  These are scaled by the linewidth.
-#lines.dashed_pattern: 3.7, 1.6
-#lines.dashdot_pattern: 6.4, 1.6, 1, 1.6
-#lines.dotted_pattern: 1, 1.65
-#lines.scale_dashes: True
-
 #markers.fillstyle: full  # {full, left, right, bottom, top, none}
 
 #pcolor.shading: auto
@@ -34,54 +28,6 @@
 #patch.force_edgecolor: False  # True to always use edgecolor
 
 
-#############
-## BOXPLOT ##
-#############
-#boxplot.notch:       False
-#boxplot.vertical:    True
-#boxplot.whiskers:    1.5
-#boxplot.bootstrap:   None
-#boxplot.patchartist: False
-#boxplot.showmeans:   False
-#boxplot.showcaps:    True
-#boxplot.showbox:     True
-#boxplot.showfliers:  True
-#boxplot.meanline:    False
-
-#boxplot.flierprops.color:           black
-#boxplot.flierprops.marker:          o
-#boxplot.flierprops.markerfacecolor: none
-#boxplot.flierprops.markeredgecolor: black
-#boxplot.flierprops.markeredgewidth: 1.0
-#boxplot.flierprops.markersize:      6
-#boxplot.flierprops.linestyle:       none
-#boxplot.flierprops.linewidth:       1.0
-
-#boxplot.boxprops.color:     black
-#boxplot.boxprops.linewidth: 1.0
-#boxplot.boxprops.linestyle: -
-
-#boxplot.whiskerprops.color:     black
-#boxplot.whiskerprops.linewidth: 1.0
-#boxplot.whiskerprops.linestyle: -
-
-#boxplot.capprops.color:     black
-#boxplot.capprops.linewidth: 1.0
-#boxplot.capprops.linestyle: -
-
-#boxplot.medianprops.color:     C1
-#boxplot.medianprops.linewidth: 1.0
-#boxplot.medianprops.linestyle: -
-
-#boxplot.meanprops.color:           C2
-#boxplot.meanprops.marker:          ^
-#boxplot.meanprops.markerfacecolor: C2
-#boxplot.meanprops.markeredgecolor: C2
-#boxplot.meanprops.markersize:       6
-#boxplot.meanprops.linestyle:       --
-#boxplot.meanprops.linewidth:       1.0
-
-
 ##########
 ## FONT ##
 ##########
@@ -93,29 +39,11 @@
                        # semi-expanded, expanded, extra-expanded, ultra-expanded, wider, narrower}
 #font.size:    10.0    # {xx-small, x-small, small, medium, large, x-large, xx-large, larger, or smaller}
 
-#font.serif:      DejaVu Serif, Bitstream Vera Serif, Computer Modern Roman, New Century Schoolbook, Century Schoolbook L, Utopia, ITC Bookman, Bookman, Nimbus Roman No9 L, Times New Roman, Times, Palatino, Charter, serif
-#font.sans-serif: DejaVu Sans, Bitstream Vera Sans, Computer Modern Sans Serif, Lucida Grande, Verdana, Geneva, Lucid, Arial, Helvetica, Avant Garde, sans-serif
-#font.cursive:    Apple Chancery, Textile, Zapf Chancery, Sand, Script MT, Felipa, Comic Neue, Comic Sans MS, cursive
-#font.fantasy:    Chicago, Charcoal, Impact, Western, Humor Sans, xkcd, fantasy
-#font.monospace:  DejaVu Sans Mono, Bitstream Vera Sans Mono, Computer Modern Typewriter, Andale Mono, Nimbus Mono L, Courier New, Courier, Fixed, Terminal, monospace
-
 
 ##########
 ## TEXT ##
 ##########
 #text.color: black
-
-#text.hinting: force_autohint  # {default, no_autohint, force_autohint, no_hinting}
-
-#text.hinting_factor: 8  # Specifies the amount of softness for hinting in the
-                         # horizontal direction.  A value of 1 will hint to full
-                         # pixels.  A value of 2 will hint to half pixels etc.
-#text.kerning_factor: 0  # Specifies the scaling factor for kerning values.  This
-                         # is provided solely to allow old test images to remain
-                         # unchanged.  Set to 6 to obtain previous behavior.
-                         # Values  other than 0 or 6 have no defined meaning.
-#text.parse_math: True  # Use mathtext if there is an even number of unescaped
-                        # dollar signs.
 
 
 ###########
@@ -189,17 +117,6 @@
                                      # at least this number of significant
                                      # digits from tick labels.
 
-#axes.spines.left:   True  # display axis spines
-#axes.spines.bottom: True
-#axes.spines.top:    True
-#axes.spines.right:  True
-
-#axes.unicode_minus: True  # use Unicode for the minus symbol rather than hyphen.
-#axes.prop_cycle: cycler('color', ['1f77b4', 'ff7f0e', '2ca02c', 'd62728', '9467bd', '8c564b', 'e377c2', '7f7f7f', 'bcbd22', '17becf'])
-                  # color cycle for plot lines as list of string color specs: single letter | long name | web-style hex
-#axes.xmargin:   .05  # x margin.
-#axes.ymargin:   .05  # y margin.
-#axes.zmargin:   .05  # z margin.
 #axes.autolimit_mode: data  # If "data", use axes.xmargin and axes.ymargin as is.
                             # If "round_numbers", after application of margins, axis
                             # limits are further expanded to the nearest "round" number.
@@ -243,10 +160,6 @@
 #xtick.labelsize:     medium  # font size of the tick labels
 #xtick.direction:     out     # direction: {in, out, inout}
 #xtick.minor.visible: False   # visibility of minor ticks on x-axis
-#xtick.major.top:     True    # draw x axis top major ticks
-#xtick.major.bottom:  True    # draw x axis bottom major ticks
-#xtick.minor.top:     True    # draw x axis top minor ticks
-#xtick.minor.bottom:  True    # draw x axis bottom minor ticks
 #xtick.minor.ndivs:   auto    # number of minor ticks between the major ticks on x-axis
 #xtick.alignment:     center  # alignment of xticks
 
@@ -265,10 +178,6 @@
 #ytick.labelsize:     medium  # font size of the tick labels
 #ytick.direction:     out     # {in, out, inout}
 #ytick.minor.visible: False   # visibility of minor ticks on y-axis
-#ytick.major.left:    True    # draw y axis left major ticks
-#ytick.major.right:   True    # draw y axis right major ticks
-#ytick.minor.left:    True    # draw y axis left minor ticks
-#ytick.minor.right:   True    # draw y axis right minor ticks
 #ytick.minor.ndivs:   auto    # number of minor ticks between the major ticks on y-axis
 #ytick.alignment:     center_baseline  # alignment of yticks
 
@@ -347,15 +256,6 @@
                               # such as a PDF.
 
 
-###################
-## CONTOUR PLOTS ##
-###################
-#contour.negative_linestyle: dashed  # string or on-off ink sequence
-#contour.corner_mask:        True    # {True, False}
-#contour.linewidth:          None    # {float, None}. If None, falls back to `line.linewidth`.
-#contour.algorithm:          mpl2014 # {mpl2005, mpl2014, serial, threaded}
-
-
 #####################
 ## HISTOGRAM PLOTS ##
 #####################
@@ -375,9 +275,6 @@
 #path.simplify: True  # When True, simplify paths by removing "invisible"
                       # points to reduce file size and increase rendering
                       # speed
-#path.simplify_threshold: 0.111111111111  # The threshold of similarity below
-                                          # which vertices will be removed in
-                                          # the simplification process.
 #path.snap: True  # When True, rectilinear axis-aligned paths will be snapped
                   # to the nearest pixel when certain criteria are met.
                   # When False, paths will never be snapped.
@@ -394,4 +291,3 @@
 #savefig.pad_inches:  0.1       # padding to be used, when bbox is set to 'tight'
 #savefig.transparent: False     # whether figures are saved with a transparent
                                 # background by default
-#savefig.orientation: portrait  # orientation of saved figure, for PostScript output only
