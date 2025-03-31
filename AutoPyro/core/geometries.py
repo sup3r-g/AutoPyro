@@ -10,20 +10,32 @@ from shapely import (
     MultiPoint,
     Point,
     Polygon,
-    contains,
     distance,
     line_interpolate_point,
 )
 
-from AutoPyro.core.base import Direction, Equation, GeometryList, Label, LabelGeometry
+from AutoPyro.core.base import (
+    Direction,
+    Equation,
+    GeometryList,
+    Label,
+    LabelGeometry,
+    Style,
+)
 from AutoPyro.core.charts import CurveFitter
 from AutoPyro.core.functions import MODELS
 
 
 class LabelPoint(LabelGeometry):
 
-    def __init__(self, x: float, y: float, label: Optional[Label] = None) -> None:
-        super().__init__(Point(x, y), label)
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        label: Optional[Label] = None,
+        style: Optional[Style] = None,
+    ) -> None:
+        super().__init__(Point(x, y), label, style)
 
     # @classmethod
     # def from_dict(cls, init_dict: dict[str, Any]) -> Self:
@@ -37,8 +49,13 @@ class LabelPoint(LabelGeometry):
 class LabelArea(LabelGeometry):
     # Area = Polygon
 
-    def __init__(self, coordinates: Sequence, label: Optional[Label] = None) -> None:
-        super().__init__(Polygon(coordinates), label)
+    def __init__(
+        self,
+        coordinates: Sequence,
+        label: Optional[Label] = None,
+        style: Optional[Style] = None,
+    ) -> None:
+        super().__init__(Polygon(coordinates), label, style)
 
     # @classmethod
     # def from_dict(cls, init_dict: dict) -> Self:
@@ -47,14 +64,14 @@ class LabelArea(LabelGeometry):
     #         label=Label.from_dict(init_dict["label"]),
     #     )
 
-    # Remove this method
-    def contains_points(
-        self, *points: LabelPoint
-    ) -> tuple[npt.NDArray, list[LabelPoint]]:
-        points_geoms = [point.geometry for point in points]
-        mask = np.nonzero(contains(self.geometry, points_geoms))[0]
+    # # Remove this method
+    # def contains_points(
+    #     self, *points: LabelPoint
+    # ) -> tuple[npt.NDArray, list[LabelPoint]]:
+    #     points_geoms = [point.geometry for point in points]
+    #     mask = np.nonzero(contains(self.geometry, points_geoms))[0]
 
-        return mask, [points[i] for i in mask]
+    #     return mask, [points[i] for i in mask]
 
 
 class LabelCurve(LabelGeometry):
@@ -66,15 +83,11 @@ class LabelCurve(LabelGeometry):
         coordinates: Sequence,
         label: Optional[Label] = None,
         equation: Optional[Equation] = None,
-        **style: Any,  # color: str, width: str
+        style: Optional[Style] = None,
+        **styles: Any,  # color: str, width: str
     ) -> None:
-        super().__init__(LineString(coordinates), label)
+        super().__init__(LineString(coordinates), label, style)
         self.equation = equation
-        self.style = style
-
-    # @classmethod
-    # def from_function(cls, function: Callable, x: Sequence, *func_args):
-    #     cls(function(x, *func_args))
 
     # @classmethod
     # def from_dict(cls, init_dict: dict[str, Any]) -> Self:
@@ -128,15 +141,25 @@ class LabelCurve(LabelGeometry):
 
 class LabelMultiPoint(LabelGeometry):
 
-    def __init__(self, *points: Point, label: Optional[Label] = None) -> None:
-        super().__init__(MultiPoint(points), label)
+    def __init__(
+        self,
+        *points: Point,
+        label: Optional[Label] = None,
+        style: Optional[Style] = None,
+    ) -> None:
+        super().__init__(MultiPoint(points), label, style)
 
 
 class LabelMultiCurve(LabelGeometry):
     # MultiCurve = MultiLineString
 
-    def __init__(self, *lines: LineString, label: Optional[Label] = None) -> None:
-        super().__init__(MultiLineString(lines), label)
+    def __init__(
+        self,
+        *lines: LineString,
+        label: Optional[Label] = None,
+        style: Optional[Style] = None,
+    ) -> None:
+        super().__init__(MultiLineString(lines), label, style)
 
 
 def resample_equal_points(

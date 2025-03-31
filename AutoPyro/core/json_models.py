@@ -1,4 +1,3 @@
-
 from dataclasses import dataclass
 from typing import Optional, Sequence
 from matplotlib.typing import ColorType
@@ -17,6 +16,12 @@ class EquationModel:
 
 
 @dataclass
+class StyleModel:
+    color: ColorType
+    width: float
+
+
+@dataclass
 class PointModel:
     x: Sequence[float]
     y: Sequence[float]
@@ -26,8 +31,7 @@ class PointModel:
 
 @dataclass
 class CurveModel:
-    color: ColorType
-    width: float
+    style: StyleModel
     label: LabelModel
     divider: Optional[bool]
     equation: EquationModel

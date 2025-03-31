@@ -112,14 +112,25 @@ class Label(Serializable):  # pd.Series
         return Label(self.name, self.value)
 
 
-class LabelGeometry(Serializable):
-    __slots__ = "geometry", "_label"
+class Style(Serializable):
 
-    def __init__(self, geometry: Geometry, label: Optional[Label] = None) -> None:
+    def __init__(self, **style_kwargs) -> None:
+        super().__init__()
+
+
+class LabelGeometry(Serializable):
+    __slots__ = "geometry", "_label", "_style"
+
+    def __init__(
+        self,
+        geometry: Geometry,
+        label: Optional[Label] = None,
+        style: Optional[Style] = None,
+    ) -> None:
         super().__init__()
         self.geometry = geometry
         self._label = label if label else Label("", "")
-        # self.style = Style()
+        self._style = style if style else Style()
 
     def __array__(self) -> npt.NDArray[Any]:
         # (self.geometry, dtype=np.object_)
@@ -200,10 +211,7 @@ class GeometryList(list):
             )
 
         return pd.DataFrame(
-            [
-                [item.label.value for item in self]
-                [item.geometry for item in self]
-            ],
+            [[item.label.value for item in self], [item.geometry for item in self]]
         )
 
     def extend(self, other) -> None:
@@ -232,11 +240,11 @@ class BaseCalculator:
 
 
 # TODO: Completely rework this shit!!!
-class BaseClassifier:
+class ChartClassifier:
     COLUMN_NAME = "Base"
 
     @staticmethod
-    def classify_single(
+    def __classify(
         X: float | npt.NDArray[np.float_],
         Y: float | npt.NDArray[np.float_],
         author: str,
@@ -255,14 +263,17 @@ class BaseClassifier:
         return plot.classify_distance()
 
     @classmethod
-    def classify_multi(
+    def classify(
         cls,
         X: float | npt.NDArray[np.float_],
         Y: float | npt.NDArray[np.float_],
-        *authors: list[str],
+        *authors: str,
         return_all: bool = False,
-    ) -> list[list[tuple[Any, ...]] | None] | tuple[NDArray[intp], ...]:
-        statistics = [cls.classify_single(X, Y, author) for author in authors]
+    ) -> list[tuple[Any, ...]] | None | list[list[tuple[Any, ...]]]:
+        if len(authors) == 1:
+            return cls.__classify(X, Y, authors[0])
+
+        statistics = [cls.__classify(X, Y, author) for author in authors]
         labels_authors = np.array(
             [point["value"] for info in statistics for point in info]
         )

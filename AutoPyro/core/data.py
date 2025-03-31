@@ -191,8 +191,7 @@ class DataTable:
         self,
         x_name: str,
         y_name: str,
-        author: str,
-        mode: Literal["single", "multi"] = "single",
+        *authors: str,
         parameter: Literal["matter", "maturity", "potential"] = "matter",
     ) -> None:
         if x_name not in self.table.columns or y_name not in self.table.columns:
@@ -207,12 +206,7 @@ class DataTable:
             )
 
         X, Y = self.table[x_name], self.table[y_name]
-        if mode == "single":
-            result = classifier.classify_single(X, Y, author)
-        elif mode == "multi":
-            result = classifier.classify_multi(X, Y, author)
-        else:
-            raise ValueError("Invalid 'mode' value")
+        result = classifier.classify(X, Y, authors)
 
         self.table[classifier.column_name] = result
 

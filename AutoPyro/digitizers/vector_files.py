@@ -6,10 +6,12 @@ from dataclasses import asdict
 from typing import Any, Self, Union
 
 import numpy as np
-from shapely import contains, simplify
+
+# from shapely import contains, simplify
 from shapely.geometry import LineString, Point, Polygon
-from shapely.ops import linemerge, polygonize, unary_union
-from svgelements import SVG, Circle, Ellipse, Path, Rect
+
+# from shapely.ops import linemerge, polygonize, unary_union
+from svgelements import SVG, Circle, Ellipse, Path, Rect, Image
 
 from AutoPyro.core.json_models import (
     AreaModel,
@@ -20,6 +22,7 @@ from AutoPyro.core.json_models import (
     PlotModel,
     PlotSettingsModel,
     PointModel,
+    StyleModel,
 )
 
 
@@ -79,6 +82,16 @@ class SVGParse:
 
         return cls(svg_file, plot_coords)
 
+    def _label_from_element(self, element):
+        # TODO: rework label logic because we won't use the old one
+        if found_label := re.findall(self.LABEL_TAG, element.string_xml()):
+            label = found_label[0]
+            label_name, *label_values = re.search(self.LABEL_PARSE, label).groups()
+
+            return label, label_name, label_values
+
+        return None, None, None
+
     def _convert_coords(self, coords: list[tuple[float]], log: bool = False):
         if log:
             return 10 ** (
@@ -91,17 +104,23 @@ class SVGParse:
                 )
                 + np.log10(self.plot_coords[0])
             )  # min
-        # TODO: add polar coordinates?
 
         return (
             (coords - self.image_coords[0])  # min
             * (self.plot_coords[1] - self.plot_coords[0])  # max - min
             / (self.image_coords[1] - self.image_coords[0])  # max - min
-        ) + self.plot_coords[0]  # min
+        ) + self.plot_coords[
+            0
+        ]  # min
 
     def _find_image_coords(self) -> tuple[float, ...]:
-        border_points = []
+        # border_points = self.svg.union_bbox(
+        #     self.svg.elements(lambda elem: not isinstance(elem, Image)),
+        # )
+        # edge_points.reshape(2, -1)
+
         # Get all Rectangles present in the image
+        border_points = []
         for element in self.svg.elements(lambda elem: isinstance(elem, Rect)):
             border_box = element.bbox()
             border_points.extend(
@@ -118,9 +137,7 @@ class SVGParse:
 
         return min_point, max_point  # (x_min, y_min), (x_max, y_max)
 
-    def _generate_curves(
-        self, step: int, divider: bool = False, log: bool = False
-    ) -> dict:
+    def _curves(self, step: int, divider: bool = False, log: bool = False) -> dict:
         curves_dict = {}
         for element in self.svg.elements(lambda elem: isinstance(elem, Path)):
             points = element.npoint(np.linspace(0, 1, step))
@@ -129,29 +146,31 @@ class SVGParse:
             # y_min + y_max
             points = self._convert_coords(points, log=log)
 
-            # TODO: rework label logic because we won't use the old one
-            if found_label := re.findall(self.LABEL_TAG, element.string_xml()):
-                label = found_label[0]
-                label_name, *label_values = re.search(self.LABEL_PARSE, label).groups()
-                curves_dict[label] = CurveModel(
-                    color=element.stroke.hex,
-                    width=element.stroke_width,
-                    label=LabelModel(
-                        name=label_name,
-                        value=[val for val in label_values if val],
-                    ),
-                    divider=divider,
-                    equation=EquationModel(curve_type=None, params=[]),
-                    points=[
-                        PointModel(
-                            x=points[:, 0].tolist(),
-                            y=points[:, 1].tolist(),
-                            label=LabelModel("", ""),
-                        )
-                    ],
+            label, label_name, label_values = self._label_from_element(element)
+            if label:
+                curves_dict[label] = asdict(
+                    CurveModel(
+                        style=StyleModel(
+                            color=element.stroke.hex,
+                            width=element.stroke_width,
+                        ),
+                        label=LabelModel(
+                            name=label_name,
+                            value=[val for val in label_values if val],
+                        ),
+                        divider=divider,
+                        equation=EquationModel(curve_type=None, params=[]),
+                        points=[
+                            PointModel(
+                                x=points[:, 0].tolist(),
+                                y=points[:, 1].tolist(),
+                                label=LabelModel("", ""),
+                            )
+                        ],
+                    )
                 )
 
-        return asdict(curves_dict)
+        return curves_dict
 
     # TODO: Remove this method because we won't need it in with attribute labels
     # `autopyro:label=value``
@@ -166,104 +185,84 @@ class SVGParse:
             # y_min + y_max
             point = self._convert_coords(point, log=log)
 
-            # TODO: rework label logic because we won't use the old one
-            if found_label := re.findall(self.LABEL_TAG, element.string_xml()):
-                label_name, *label_values = re.search(
-                    self.LABEL_PARSE, found_label[0]
-                ).groups()
+            _, label_name, label_values = self._label_from_element(point)
+            if label_name:
                 markers_list.append((Point(point), (label_name, label_values[0])))
 
         return markers_list
 
-    def _generate_areas(
-        self, curves_dict: dict, markers_list: list, length_ratio: float = 0.1
-    ) -> dict:
-        lines = [
-            extrapolate_curve(
-                simplify(
-                    LineString(list(zip(*value["points"].values()))), tolerance=0.05
-                ),
-                length_ratio=length_ratio,
-            )
-            for value in curves_dict.values()
-        ]
-        # labels = [value["label"] for value in curves_dict.values()]
+    # def _areas(
+    #     self, curves_dict: dict, markers_list: list, length_ratio: float = 0.1
+    # ) -> dict:
+    #     lines = [
+    #         extrapolate_curve(
+    #             simplify(
+    #                 LineString(list(zip(*value["points"].values()))), tolerance=0.05
+    #             ),
+    #             length_ratio=length_ratio,
+    #         )
+    #         for value in curves_dict.values()
+    #     ]
+    #     # labels = [value["label"] for value in curves_dict.values()]
 
-        bounds = Polygon(
-            [
-                (self.plot_coords[0, 0], self.plot_coords[0, 1]),
-                (self.plot_coords[0, 0], self.plot_coords[1, 1]),
-                (self.plot_coords[1, 0], self.plot_coords[1, 1]),
-                (self.plot_coords[1, 0], self.plot_coords[0, 1]),
-            ]
-        )
+    #     bounds = Polygon(
+    #         [
+    #             (self.plot_coords[0, 0], self.plot_coords[0, 1]),
+    #             (self.plot_coords[0, 0], self.plot_coords[1, 1]),
+    #             (self.plot_coords[1, 0], self.plot_coords[1, 1]),
+    #             (self.plot_coords[1, 0], self.plot_coords[0, 1]),
+    #         ]
+    #     )
 
-        lines.append(bounds.boundary)
-        lines = unary_union(linemerge(lines))
-        polygons = [
-            polygon for polygon in polygonize(lines) if polygon.area > 1
-        ]  # if not np.allclose(polygon.area, 0)
+    #     lines.append(bounds.boundary)
+    #     lines = unary_union(linemerge(lines))
+    #     polygons = [polygon for polygon in polygonize(lines) if polygon.area > 1]
 
-        # TODO: remove, since we won't need this
-        markers_geometry = [point[0] for point in markers_list]
-        markers_labels = [point[1] for point in markers_list]
-        inclusions = np.array([contains(poly, markers_geometry) for poly in polygons])
+    #     # TODO: remove, since we won't need this
+    #     markers_geometry = [point[0] for point in markers_list]
+    #     markers_labels = [point[1] for point in markers_list]
+    #     inclusions = np.array([contains(poly, markers_geometry) for poly in polygons])
 
+    #     areas_dict = {}
+    #     for i, j in np.argwhere(inclusions):
+    #         x, y = polygons[i].exterior.coords.xy
+    #         name, values = markers_labels[j]
+    #         areas_dict[f"{name}: {values}"] = asdict(
+    #             AreaModel(
+    #                 label=LabelModel(name=name, value=values),
+    #                 points=[
+    #                     PointModel(x=x.tolist(), y=y.tolist(), label=LabelModel("", ""))
+    #                 ],
+    #             )
+    #         )
+
+    #     return areas_dict
+
+    def _areas(self, step: int, log: bool = False) -> dict:
         areas_dict = {}
-        for i, j in np.argwhere(inclusions):
-            x, y = polygons[i].exterior.coords.xy
-            name, values = markers_labels[j]
-            areas_dict[f"{name}: {values}"] = AreaModel(
-                label=LabelModel(name=name, value=values),
-                points=[
-                    PointModel(x=x.tolist(), y=y.tolist(), label=LabelModel("", ""))
-                ],
-            )
+        for element in self.svg.elements(lambda elem: isinstance(elem, Path)):
+            points = element.npoint(np.linspace(0, 1, step))
+            points[:, 0] = np.abs(points[:, 0])
+            points[:, 1] += self.image_coords[:, 1].sum()  # = points[:, 1] +
+            # y_min + y_max
+            points = self._convert_coords(points, log=log)
 
-        # Dunno what to dom with this code
+            label, label_name, label_values = self._label_from_element(element)
+            if label:
+                areas_dict[label] = asdict(
+                    AreaModel(
+                        label=LabelModel(name=label_name, value=label_values),
+                        points=[
+                            PointModel(
+                                x=points[:, 0].tolist(),
+                                y=points[:, 1].tolist(),
+                                label=LabelModel("", ""),
+                            )
+                        ],
+                    )
+                )
 
-        # areas_dict = {}
-        # for label, (i, line) in zip(labels, enumerate(lines)):
-        #     sliced_part, bounds = split(bounds, line).geoms
-        #     name = label["name"]
-        #     values = label["value"]
-        #     if i != len(lines) - 1:
-        #         x, y = sliced_part.exterior.coords.xy
-        #         areas_dict[f"{name}: {values[0]}"] = AreaModel(
-        #             label=LabelModel(name=name, value=values[0]),
-        #             points=[
-        #                 PointModel(
-        #                     x=x.tolist(),
-        #                     y=y.tolist(),
-        #                     label=LabelModel("", ""),
-        #                 )
-        #             ],
-        #         )
-        #     else:
-        #         x, y = sliced_part.exterior.coords.xy
-        #         areas_dict[f"{name}: {values[0]}"] = AreaModel(
-        #             label=LabelModel(name=name, value=values[0]),
-        #             points=[
-        #                 PointModel(
-        #                     x=x.tolist(),
-        #                     y=y.tolist(),
-        #                     label=LabelModel("", ""),
-        #                 )
-        #             ],
-        #         )
-        #         x, y = bounds.exterior.coords.xy
-        #         areas_dict[f"{name}: {values[1]}"] = AreaModel(
-        #             label=LabelModel(name=name, value=values[1]),
-        #             points=[
-        #                 PointModel(
-        #                     x=x.tolist(),
-        #                     y=y.tolist(),
-        #                     label=LabelModel("", ""),
-        #                 )
-        #             ],
-        #         )
-
-        return asdict(areas_dict)
+        return areas_dict
 
     def to_dict(
         self,
@@ -273,12 +272,8 @@ class SVGParse:
         grid: bool = True,
         legend: bool = True,
     ) -> dict[str, Any]:
-        curves = self._generate_curves(step=step, divider=divider, log=log)
-        areas = (
-            self._generate_areas(curves, self._find_area_markers(log=log))
-            if divider
-            else {}
-        )
+        curves = self._curves(step=step, divider=divider, log=log)
+        areas = self._areas(curves, self._find_area_markers(log=log)) if divider else {}
 
         # Ugly, very ugly
         possible_labels = defaultdict(list)

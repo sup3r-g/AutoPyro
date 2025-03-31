@@ -140,9 +140,7 @@ class Chart(Serializable):
         if return_result:
             return self.points.labels
 
-    def classify_distance(
-        self, return_result: bool = True
-    ) -> list[tuple[Any, ...]] | None:
+    def classify_distance(self, return_result: bool = True) -> list[tuple[Any, ...]] | None:
         if not self.points or not self.curves:
             raise KeyError("Either points or curves are not present in the 'Chart'")
 

@@ -197,7 +197,7 @@ class CanvasPlot:
         self._set_canvas_props()
 
     def add_areas(
-        self, color: str, alpha: float = 0.6, annotations: bool = False, **mpl_kwargs
+        self, alpha: float = 0.6, annotations: bool = False, **mpl_kwargs
     ) -> None:
         if self.plot.areas:
             for i, area in enumerate(self.plot.areas):
@@ -205,8 +205,8 @@ class CanvasPlot:
                     area.geometry,
                     add_points=False,
                     ax=self.axes,
-                    alpha=alpha,
-                    facecolor=color if color else COLORS[i],
+                    alpha=alpha if alpha else area.style.alpha,
+                    facecolor=area.style.color if area.style.color else COLORS[i],
                     edgecolor="k",
                     label=str(area.label),
                     **mpl_kwargs,
@@ -236,8 +236,8 @@ class CanvasPlot:
                 self.axes.plot(
                     *curve.xy,
                     # add_points=False,
-                    color=curve.color,
-                    linewidth=curve.width,
+                    color=curve.style.color,
+                    linewidth=curve.style.width,
                     label=label,
                     **mpl_kwargs,
                 )
