@@ -70,7 +70,7 @@ class Chart(Serializable):
     @classmethod
     def from_author(cls, author: str) -> Self:
         return cls.from_json(
-            Path(__file__).parents[1].joinpath("resources/plots", f"{author}.json")
+            Path(__file__).parents[1].joinpath("resources/json", f"{author}.json")
         )
 
     @classmethod
