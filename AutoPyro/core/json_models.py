@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 from matplotlib.typing import ColorType
 
 
@@ -18,7 +18,28 @@ class EquationModel:
 @dataclass
 class StyleModel:
     color: ColorType
+    edgecolor: Any
+    facecolor: Any
     width: float
+    joinstyle: str = 'miter'
+    alpha: Optional[float] = None
+    capstyle: str = 'butt'
+    fillstyle: str = "full"
+    linestyle: str = "-"
+    linewidth: float = 1.5
+    # Marker
+    marker: Optional[str] = None
+    markeredgecolor: ColorType = "C0"
+    markeredgewidth: float = 1.0
+    markerfacecolor: ColorType = "C0"
+    markerfacecoloralt: str = "none"
+    markersize: float = 6.0
+    # Solid
+    solid_capstyle: str = "projecting"
+    solid_joinstyle: str = "round"
+    # Dash
+    dash_capstyle: str = "butt"
+    dash_joinstyle: str = "round"
 
 
 @dataclass

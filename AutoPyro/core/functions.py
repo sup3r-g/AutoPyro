@@ -1,3 +1,4 @@
+from typing import Literal
 from numpy import exp, log, log10, sum
 
 __all__ = []
@@ -57,3 +58,7 @@ MODELS = {
     "generalized_sigmoid": generalized_sigmoid,
     "generalized_sigmoid_odr": generalized_sigmoid_odr,
 }
+
+IMPLEMENTED_MODELS = Literal[
+    "linear", "power", "exponential", "logarithmic", "polynomial", "gaussian", "sigmoid"
+]

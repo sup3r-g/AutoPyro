@@ -8,41 +8,50 @@ from scipy.optimize import curve_fit
 from shapely import contains
 
 from AutoPyro.core.base import GeometryList, Serializable
-from AutoPyro.core.functions import MODELS
+from AutoPyro.core.functions import MODELS, IMPLEMENTED_MODELS
 from AutoPyro.core.geometries import LabelArea, LabelCurve, LabelPoint, ranked_distances
 
 COMPONENTS = Literal["curves", "areas", "points"]
 
 
 class CurveFitter:
+    __slots__ = "x", "y"
 
-    def __init__(self, x, y) -> None:
+    def __init__(self, x: Iterable[float], y: Iterable[float]) -> None:
         self.x = x
         self.y = y
 
-    def __get_initial_guess(self):
+    def __initial_guess(self):
         pass
 
-    def fit_ols(self, model="linear", initial_guess=None):
+    def fit_ols(
+        self,
+        model: IMPLEMENTED_MODELS = "linear",
+        initial_guess: Optional[Iterable[float]] = None,
+    ):
         model_func = MODELS[model]
         params, _ = curve_fit(
             model_func,
             self.x,
             self.y,
-            p0=initial_guess if initial_guess else self.__get_initial_guess(),
+            p0=initial_guess if initial_guess else self.__initial_guess(),
         )
 
         # Y_trend = self.model_func(X, *params)
 
         return model_func, params
 
-    def fit_odr(self, model="linear", initial_guess=None):
+    def fit_odr(
+        self,
+        model: IMPLEMENTED_MODELS = "linear",
+        initial_guess: Optional[Iterable[float]] = None,
+    ):
         model_func = odr.Model(MODELS[model])
         data = odr.Data(self.x, self.y)
         odr_obj = odr.ODR(
             data,
             model_func,
-            beta0=initial_guess if initial_guess else self.__get_initial_guess(),
+            beta0=initial_guess if initial_guess else self.__initial_guess(),
         )
 
         output = odr_obj.run()
@@ -140,7 +149,9 @@ class Chart(Serializable):
         if return_result:
             return self.points.labels
 
-    def classify_distance(self, return_result: bool = True) -> list[tuple[Any, ...]] | None:
+    def classify_distance(
+        self, return_result: bool = True
+    ) -> list[tuple[Any, ...]] | None:
         if not self.points or not self.curves:
             raise KeyError("Either points or curves are not present in the 'Chart'")
 
