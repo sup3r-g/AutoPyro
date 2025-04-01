@@ -13,7 +13,7 @@ from shapely.geometry import LineString, Point, Polygon
 # from shapely.ops import linemerge, polygonize, unary_union
 from svgelements import SVG, Circle, Ellipse, Path, Rect, Image
 
-from AutoPyro.core.json_models import (
+from AutoPyro.core.models import (
     AreaModel,
     CurveModel,
     DataModel,
@@ -84,6 +84,7 @@ class SVGParse:
 
     def _label_from_element(self, element):
         # TODO: rework label logic because we won't use the old one
+        # element.get('autopyro:label')
         if found_label := re.findall(self.LABEL_TAG, element.string_xml()):
             label = found_label[0]
             label_name, *label_values = re.search(self.LABEL_PARSE, label).groups()

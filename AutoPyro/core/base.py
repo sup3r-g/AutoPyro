@@ -13,6 +13,7 @@ from shapely import Geometry
 
 from AutoPyro.core.charts import Chart
 from AutoPyro.core.geometries import LabelPoint
+from AutoPyro.core.models import Style
 
 # from shapely.geometry import mapping, shape
 
@@ -110,12 +111,6 @@ class Label(Serializable):  # pd.Series
 
     def copy(self):
         return Label(self.name, self.value)
-
-
-class Style(Serializable):
-
-    def __init__(self, **style_kwargs) -> None:
-        super().__init__()
 
 
 class LabelGeometry(Serializable):

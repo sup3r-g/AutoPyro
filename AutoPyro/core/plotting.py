@@ -33,15 +33,8 @@ MATPLOTLIB_SHAPES_MAP = {
 }
 
 
-MATPLOTLIB_LEGEND_MAP = {
-    LineString: Line2D,
-    Point: Line2D,
-    Polygon: PathPatch,
-}
-
-
 def matplotlib_args(geometry: Geometry) -> dict[str, Any]:
-    return ArtistInspector(MATPLOTLIB_SHAPES_MAP.get(geometry)).properties()
+    return ArtistInspector(MATPLOTLIB_SHAPES_MAP.get(geometry)).get_setters()
 
 
 def annotation_helper(
@@ -162,18 +155,6 @@ def plot_points(geom, ax=None, color=None, marker="o", **kwargs):
         coords[:, 0], coords[:, 1], linestyle="", marker=marker, color=color, **kwargs
     )
     return line
-
-
-class AreasStyle:
-    pass
-
-
-class CurvesStyle:
-    pass
-
-
-class PointsStyle:
-    pass
 
 
 class CanvasPlot:

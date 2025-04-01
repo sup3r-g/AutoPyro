@@ -8,6 +8,7 @@ import pandas as pd
 from shapely.ops import polygonize, split, unary_union
 from shapely.geometry import MultiPolygon, Point, Polygon
 
+from AutoPyro.core.base import Style
 from AutoPyro.core.data import DataTable
 from AutoPyro.digitizers import MapDigitizer
 
@@ -104,7 +105,7 @@ class Map:
     def add_points(
         self, X: Union[pd.Series, gpd.GeoSeries], Y: Union[pd.Series, gpd.GeoSeries]
     ) -> None:
-        self.elements["Points"] = gpd.GeoSeries([Point(x, y) for x, y in zip(X, Y)])
+        self.elements["points"] = gpd.GeoSeries([Point(x, y) for x, y in zip(X, Y)])
 
     def to_file(self, file_type="shp", **kwargs) -> None:
         gpd.to_file(f"dataframe.{file_type}", mode="w", **kwargs)

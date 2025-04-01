@@ -39,12 +39,9 @@ class ConditionalClassifier:
     # TABLE = pd.read_json()
 
     @classmethod
-    def classify(cls, *values: Any) -> tuple[str, float]:
+    def classify(cls, *values: Any) -> list[str, float]:
         table = cls.TABLE  # ["condition", "value"]
-        response = []
-        # pd.eval()
-        for cond in table["condition"]:
-            pass
+        response = [val for cond, val in table.itertuples(index=False) if pd.eval(cond)]
 
         return response
 

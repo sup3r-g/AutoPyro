@@ -75,7 +75,7 @@ class DataTable:
         return getattr(self.table, attr)
 
     @property
-    def queries(self) -> list[Any]:
+    def queries(self) -> list[str]:
         return self.__queries
 
     @classmethod
