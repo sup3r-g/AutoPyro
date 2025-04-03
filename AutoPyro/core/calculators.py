@@ -1,19 +1,21 @@
 """Calculators - static relations with parameters, don't depend on anything."""
 
+import inspect
+import sys
 from typing import Any, Optional
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-from AutoPyro.core.base import BaseCalculator, Label
-from AutoPyro.core.geometries import (
+from base import BaseCalculator, Label
+from charts import Chart
+from geometries import (
     LabelCurve,
     LabelPoint,
     average_curves,
     minimal_distances,
 )
-from AutoPyro.core.charts import Chart
 
 
 class TransformationRatio:
@@ -195,8 +197,14 @@ class TOCo:
             return result
 
 
-CALCULATORS_MAP = {"HIo": HIo, "TOCo": TOCo, "TR": TransformationRatio}
+CALCULATORS_MAP = dict(
+    inspect.getmembers(
+        sys.modules[__name__],
+        lambda member: inspect.isclass(member) and member.__module__ == __name__,
+    )
+)
 
 if __name__ == "__main__":
-    print(TransformationRatio.COLUMN_NAME)
-    print(HIo.Cornford_2001()(600, 430))
+    # print(TransformationRatio.COLUMN_NAME)
+    # print(HIo.Cornford_2001()(600, 430))
+    print(CALCULATORS_MAP)

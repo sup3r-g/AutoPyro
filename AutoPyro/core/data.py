@@ -9,8 +9,8 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 # from catboost import CatBoostRegressor, Pool
-from AutoPyro.core.calculators import CALCULATORS_MAP
-from AutoPyro.core.classifiers import CLASSIFIERS_MAP
+from calculators import CALCULATORS_MAP
+from classifiers import CLASSIFIERS_MAP
 
 
 TRANSLATION_MAP = {
@@ -153,7 +153,7 @@ class DataTable:
         columns = list(columns) if columns else self.table.columns
 
         if group is not None:
-            table = self.table[columns + [group]].groupby("Structural element Russian")
+            table = self.table[columns + [group]].groupby(group)
         else:
             table = self.table[columns]
 
@@ -165,15 +165,12 @@ class DataTable:
         return stats
 
     def get_histogram(
-        self,
-        column: str,
-        bins: int | str = "auto",
-        **hist_kwargs,
+        self, column: str, bins: int | str = "auto", **histogram_kwargs
     ) -> tuple[np.ndarray, np.ndarray]:
-        return np.histogram(self.table[column], bins=bins, **hist_kwargs)
+        return np.histogram(self.table[column], bins=bins, **histogram_kwargs)
 
     def plot_histogram(
-        self, column: str, color, bins: int | str = "auto", **hist_kwargs
+        self, column: str, color, bins: int | str = "auto", **histogram_kwargs
     ):
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.set_title(column, fontweight="bold", fontsize=16)
@@ -182,7 +179,7 @@ class DataTable:
         ax.set_ylabel("Частота", fontweight="bold", fontsize=14)
         ax.tick_params(axis="both", labelsize=14)
         self.table[column].hist(
-            bins=bins, ax=ax, facecolor=color, edgecolor="k", **hist_kwargs
+            bins=bins, ax=ax, facecolor=color, edgecolor="k", **histogram_kwargs
         )
 
         return fig, ax
@@ -205,10 +202,9 @@ class DataTable:
                 f"Classification parameter '{parameter}' is not available yet"
             )
 
-        X, Y = self.table[x_name], self.table[y_name]
-        result = classifier.classify(X, Y, authors)
-
-        self.table[classifier.column_name] = result
+        self.table[classifier.column_name] = classifier.classify(
+            self.table[x_name], self.table[y_name], authors
+        )
 
     def calculate(self, target="HIo", option="plot", **calculator_kwargs) -> None:
         calculator = CALCULATORS_MAP.get(target, None)

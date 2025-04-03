@@ -19,8 +19,8 @@ from shapely import (
     get_coordinates,
 )
 
-from AutoPyro.core.charts import Chart
-from AutoPyro.core.maps import Map
+from charts import Chart
+from maps import Map
 
 COLORS = get_cmap("hsv")(np.linspace(0, 1, 20))
 np.random.default_rng().shuffle(COLORS)

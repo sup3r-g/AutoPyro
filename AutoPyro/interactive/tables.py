@@ -89,7 +89,7 @@ class DataTableUI(param.Parameterized):
     def _update_table(self):
         if hasattr(self, "table"):
             self.table.value = self.dataframe
-    
+
     @staticmethod
     def _clean_column_names(df) -> pd.DataFrame:
         df.columns = df.columns.str.split(pat=DataTableUI.PATTERN, expand=False).map(

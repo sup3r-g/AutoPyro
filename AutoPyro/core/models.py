@@ -16,7 +16,7 @@ class LabelModel:
 @dataclass
 class EquationModel:
     curve_type: Optional[str] = None
-    params: Sequence[float] = []  # [1.2, 4, 7.5]
+    params: Sequence[float] = ()  # [1.2, 4, 7.5]
 
 
 # @dataclass

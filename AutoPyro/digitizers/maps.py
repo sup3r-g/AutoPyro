@@ -87,11 +87,7 @@ class MapDigitizer:
         colors = color.lab2rgb(centroid_image)
 
         if plot_pie_chart:
-            plt.pie(
-                percent,
-                colors=colors,
-                labels=labels,
-            )
+            plt.pie(percent, colors=colors, labels=labels)
 
         labels_array = labels_image.reshape(self.image.shape[0], self.image.shape[1])
 

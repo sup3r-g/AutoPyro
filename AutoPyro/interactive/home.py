@@ -2,7 +2,7 @@ import os
 import sys
 
 import panel as pn
-from common import *
+from common import PRIMARY_COLOR, SECONDARY_COLOR
 from maps import MAP_UI
 from tables import TABLE_UI
 from plots import PLOT_UI

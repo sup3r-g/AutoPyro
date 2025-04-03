@@ -3,60 +3,12 @@ from typing import Any, Iterable, Literal, Optional, Self
 
 import numpy as np
 import pandas as pd
-from scipy import odr
-from scipy.optimize import curve_fit
 from shapely import contains
 
-from AutoPyro.core.base import GeometryList, Serializable
-from AutoPyro.core.functions import MODELS, IMPLEMENTED_MODELS
-from AutoPyro.core.geometries import LabelArea, LabelCurve, LabelPoint, ranked_distances
+from base import GeometryList, Serializable
+from geometries import LabelArea, LabelCurve, LabelPoint, ranked_distances
 
 COMPONENTS = Literal["curves", "areas", "points"]
-
-
-class CurveFitter:
-    __slots__ = "x", "y"
-
-    def __init__(self, x: Iterable[float], y: Iterable[float]) -> None:
-        self.x = x
-        self.y = y
-
-    def __initial_guess(self):
-        pass
-
-    def fit_ols(
-        self,
-        model: IMPLEMENTED_MODELS = "linear",
-        initial_guess: Optional[Iterable[float]] = None,
-    ):
-        model_func = MODELS[model]
-        params, _ = curve_fit(
-            model_func,
-            self.x,
-            self.y,
-            p0=initial_guess if initial_guess else self.__initial_guess(),
-        )
-
-        # Y_trend = self.model_func(X, *params)
-
-        return model_func, params
-
-    def fit_odr(
-        self,
-        model: IMPLEMENTED_MODELS = "linear",
-        initial_guess: Optional[Iterable[float]] = None,
-    ):
-        model_func = odr.Model(MODELS[model])
-        data = odr.Data(self.x, self.y)
-        odr_obj = odr.ODR(
-            data,
-            model_func,
-            beta0=initial_guess if initial_guess else self.__initial_guess(),
-        )
-
-        output = odr_obj.run()
-
-        return model_func, output.beta
 
 
 class Chart(Serializable):

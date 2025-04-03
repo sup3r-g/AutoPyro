@@ -8,9 +8,9 @@ import pandas as pd
 from shapely.ops import polygonize, split, unary_union
 from shapely.geometry import MultiPolygon, Point, Polygon
 
-from AutoPyro.core.base import Style
-from AutoPyro.core.data import DataTable
-from AutoPyro.digitizers import MapDigitizer
+from base import Style
+from data import DataTable
+from digitizers import MapDigitizer
 
 
 class MapElement:

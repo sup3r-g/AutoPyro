@@ -1,5 +1,10 @@
-from typing import Literal
+from enum import StrEnum, auto
+import inspect
+import sys
+from typing import Iterable, Literal, Optional
 from numpy import exp, log, log10, sum
+from scipy import odr
+from scipy.optimize import curve_fit
 
 __all__ = []
 
@@ -49,16 +54,62 @@ def generalized_sigmoid_odr(B, x) -> float:
     return (B[1] - B[0]) / (B[3] * exp(B[2] * (x - B[5])) + B[4]) + B[0]
 
 
-MODELS = {
-    "linear": linear,
-    "power": power,
-    "exponential": exponential,
-    "logarithmic": logarithmic,
-    "polynomial": polynomial,
-    "generalized_sigmoid": generalized_sigmoid,
-    "generalized_sigmoid_odr": generalized_sigmoid_odr,
-}
+MODELS = dict(
+    inspect.getmembers(
+        sys.modules[__name__],
+        lambda member: inspect.isfunction(member) and member.__module__ == __name__,
+    )
+)
 
-IMPLEMENTED_MODELS = Literal[
-    "linear", "power", "exponential", "logarithmic", "polynomial", "gaussian", "sigmoid"
-]
+IMPLEMENTED_MODELS = StrEnum(
+    "ImplementedModels", [(name.upper(), auto()) for name in MODELS]
+)
+
+
+class CurveFitter:
+    __slots__ = "x", "y"
+
+    def __init__(self, x: Iterable[float], y: Iterable[float]) -> None:
+        self.x = x
+        self.y = y
+
+    def __initial_guess(self):
+        pass
+
+    def fit_ols(
+        self,
+        model: IMPLEMENTED_MODELS = "linear",
+        initial_guess: Optional[Iterable[float]] = None,
+    ):
+        model_func = MODELS[model]
+        params, _ = curve_fit(
+            model_func,
+            self.x,
+            self.y,
+            p0=initial_guess if initial_guess else self.__initial_guess(),
+        )
+
+        # Y_trend = self.model_func(X, *params)
+
+        return model_func, params
+
+    def fit_odr(
+        self,
+        model: IMPLEMENTED_MODELS = "linear",
+        initial_guess: Optional[Iterable[float]] = None,
+    ):
+        model_func = odr.Model(MODELS[model])
+        data = odr.Data(self.x, self.y)
+        odr_obj = odr.ODR(
+            data,
+            model_func,
+            beta0=initial_guess if initial_guess else self.__initial_guess(),
+        )
+
+        output = odr_obj.run()
+
+        return model_func, output.beta
+
+
+if __name__ == "__main__":
+    print(IMPLEMENTED_MODELS)

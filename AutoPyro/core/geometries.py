@@ -2,7 +2,8 @@ from collections import defaultdict
 from typing import Any, Literal, Optional, Self, Sequence
 
 import numpy as np
-import numpy.typing as npt
+from base import Direction, Equation, GeometryList, Label, LabelGeometry, Style
+from functions import MODELS, CurveFitter
 from scipy.stats import rankdata
 from shapely import (
     LineString,
@@ -13,17 +14,6 @@ from shapely import (
     distance,
     line_interpolate_point,
 )
-
-from AutoPyro.core.base import (
-    Direction,
-    Equation,
-    GeometryList,
-    Label,
-    LabelGeometry,
-    Style,
-)
-from AutoPyro.core.charts import CurveFitter
-from AutoPyro.core.functions import MODELS
 
 
 class LabelPoint(LabelGeometry):

@@ -1,21 +1,76 @@
 """Classifiers - depend on initial conditions, require Plots."""
 
 from typing import Any
+
+import numpy as np
+import numpy.typing as npt
 import pandas as pd
-from AutoPyro.core.base import BaseClassifier
+
+from base import Label
+from charts import Chart
+from geometries import LabelPoint
 
 
-class MatterType(BaseClassifier):
+# TODO: Completely rework this shit!!!
+class ChartClassifier:
+    COLUMN_NAME = "Base"
+
+    @staticmethod
+    def __classify(
+        X: float | npt.NDArray[np.float_],
+        Y: float | npt.NDArray[np.float_],
+        author: str,
+    ) -> list[tuple[Any, ...]] | None:
+        plot = Chart.from_author(author)
+        plot.add(
+            *[
+                LabelPoint(x, y, Label("", ""))
+                for x, y in zip(X, Y)
+                if not np.isnan(x) and not np.isnan(y)
+            ]
+        )
+        if plot.areas:
+            return plot.classify_area()
+
+        return plot.classify_distance()
+
+    @classmethod
+    def classify(
+        cls,
+        X: float | npt.NDArray[np.float_],
+        Y: float | npt.NDArray[np.float_],
+        *authors: str,
+        return_all: bool = False,
+    ) -> list[tuple[Any, ...]] | None | list[list[tuple[Any, ...]]]:
+        if len(authors) == 1:
+            return cls.__classify(X, Y, authors[0])
+
+        statistics = [cls.__classify(X, Y, author) for author in authors]
+        labels_authors = np.array(
+            [point["value"] for info in statistics for point in info]
+        )
+
+        labels, ratios = np.unique(labels_authors, return_counts=True)
+        mode = np.argwhere(ratios == np.max(ratios))
+        ratios /= labels_authors.shape[0]
+
+        if return_all:
+            return statistics
+
+        return mode, (labels, ratios)
+
+
+class MatterType(ChartClassifier):
     COLUMN_NAME = "Organic Matter Type"
     SELECTOR = "MATTER TYPE"
 
 
-class Maturity(BaseClassifier):
+class Maturity(ChartClassifier):
     COLUMN_NAME = "Maturity Level"
     SELECTOR = "MATURITY | Ro"
 
 
-class GenerativePotential(BaseClassifier):
+class GenerativePotential(ChartClassifier):
     COLUMN_NAME = "Generative Potential"
 
 
