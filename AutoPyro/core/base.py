@@ -218,7 +218,7 @@ class GeometryList(list):
             )
 
         return pd.DataFrame(
-            [[item.label.value for item in self], self.geometries]
+            [[item.label.value for item in self], [item.geometry for item in self]]
         )
 
     def extend(self, other) -> None:
