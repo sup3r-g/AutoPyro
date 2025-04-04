@@ -1,8 +1,8 @@
 from enum import StrEnum, auto
-import inspect
-import sys
-from typing import Iterable, Literal, Optional
-from numpy import exp, log, log10, sum
+from typing import Iterable, Optional
+
+from helpers import get_all_of_object_type
+from numpy import exp, log, sum
 from scipy import odr
 from scipy.optimize import curve_fit
 
@@ -54,12 +54,8 @@ def generalized_sigmoid_odr(B, x) -> float:
     return (B[1] - B[0]) / (B[3] * exp(B[2] * (x - B[5])) + B[4]) + B[0]
 
 
-MODELS = dict(
-    inspect.getmembers(
-        sys.modules[__name__],
-        lambda member: inspect.isfunction(member) and member.__module__ == __name__,
-    )
-)
+MODELS = get_all_of_object_type(__name__, "function")
+
 
 IMPLEMENTED_MODELS = StrEnum(
     "ImplementedModels", [(name.upper(), auto()) for name in MODELS]
@@ -112,4 +108,4 @@ class CurveFitter:
 
 
 if __name__ == "__main__":
-    print(IMPLEMENTED_MODELS)
+    print(MODELS, IMPLEMENTED_MODELS.__members__)

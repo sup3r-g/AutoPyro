@@ -76,7 +76,9 @@ class LabelCurve(LabelGeometry):
         style: Optional[Style] = None,
         **styles: Any,  # color: str, width: str
     ) -> None:
-        super().__init__(LineString(coordinates), label, style)
+        super().__init__(
+            LineString(coordinates), label, style if style else Style(**styles)
+        )
         self.equation = equation
 
     # @classmethod

@@ -82,8 +82,9 @@ class Style:
         "zorder",
     )
 
-    def __init__(self, geometry) -> None:
+    def __init__(self, geometry, **style_kwargs) -> None:
         inspector = ArtistInspector(geometry)
+        self.arguments = inspector.get_setters()
         self.arguments = inspector.get_setters()
         self.valid_values = [inspector.get_valid_values(arg) for arg in self.arguments]
 
@@ -99,15 +100,15 @@ class Style:
         ]
 
 
-class AreasStyle:
+class AreasStyle(Style):
     pass
 
 
-class CurvesStyle:
+class CurvesStyle(Style):
     pass
 
 
-class PointsStyle:
+class PointsStyle(Style):
     pass
 
 

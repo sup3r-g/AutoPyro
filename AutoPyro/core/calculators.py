@@ -1,21 +1,14 @@
 """Calculators - static relations with parameters, don't depend on anything."""
 
-import inspect
-import sys
 from typing import Any, Optional
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-
 from base import BaseCalculator, Label
 from charts import Chart
-from geometries import (
-    LabelCurve,
-    LabelPoint,
-    average_curves,
-    minimal_distances,
-)
+from geometries import LabelCurve, LabelPoint, average_curves, minimal_distances
+from helpers import get_all_of_object_type
 
 
 class TransformationRatio:
@@ -197,12 +190,8 @@ class TOCo:
             return result
 
 
-CALCULATORS_MAP = dict(
-    inspect.getmembers(
-        sys.modules[__name__],
-        lambda member: inspect.isclass(member) and member.__module__ == __name__,
-    )
-)
+CALCULATORS_MAP = get_all_of_object_type(__name__, "class")
+
 
 if __name__ == "__main__":
     # print(TransformationRatio.COLUMN_NAME)

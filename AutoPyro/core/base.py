@@ -151,7 +151,21 @@ class LabelGeometry(Serializable):
 
     @label.setter
     def label(self, value) -> None:
+        if not isinstance(value, Label):
+            raise TypeError(f"Not 'Label' type. Provided type: {type(value)}")
+
         self._label = value
+
+    @property
+    def style(self) -> Style | None:
+        return self._style
+
+    @style.setter
+    def style(self, value) -> None:
+        if not isinstance(value, Style):
+            raise TypeError(f"Not 'Style' type. Provided type: {type(value)}")
+
+        self._style = value
 
     @classmethod
     def make(
@@ -200,11 +214,11 @@ class GeometryList(list):
         if not pandas:
             return gpd.GeoDataFrame(
                 [item.label.value for item in self],
-                geometry=[item.geometry for item in self],
+                geometry=self.geometries,
             )
 
         return pd.DataFrame(
-            [[item.label.value for item in self], [item.geometry for item in self]]
+            [[item.label.value for item in self], self.geometries]
         )
 
     def extend(self, other) -> None:

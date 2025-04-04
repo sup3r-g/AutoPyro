@@ -98,6 +98,9 @@ class DataTable:
 
     @staticmethod
     def _clean_column_names(table: pd.DataFrame) -> pd.DataFrame:
+        # I need to write logic to unify column names:
+        # column.str.contains("HI") -> rename it to this simple name
+
         table.columns = table.columns.str.split(
             pat=DataTable.PATTERN, expand=False
         ).map(lambda split_list: split_list[0])

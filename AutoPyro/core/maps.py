@@ -61,12 +61,9 @@ class Map:
     def get_columns(
         self, select_geometry: Literal["base", "separator", "point"] = "base"
     ) -> list:
-        if select_geometry == "base":
-            return self.base_polygons.columns.to_list()
-        if select_geometry == "separator":
-            return self.separator_polygons.columns.to_list()
-        if select_geometry == "point":
-            return self.points.columns.to_list()
+        element = self.elements.get(select_geometry)
+        if element is not None:
+           return element.data.columns.to_list()
 
         raise AttributeError("Invalid dataframe selection")
 
@@ -78,20 +75,17 @@ class Map:
         if column not in self.get_columns(select_geometry):
             raise KeyError("Specified column not in the dataframe")
 
-        if select_geometry == "base":
-            return self.base_polygons[column]
-        if select_geometry == "separator":
-            return self.separator_polygons[column]
-        if select_geometry == "point":
-            return self.points[column]
+        element = self.elements.get(select_geometry)
+        if element is not None:
+           return element.data[column]
 
         raise AttributeError("Invalid dataframe selection")
 
     def intersect(
         self, base_names: list[str], separator_names: list[str], union: bool = False
     ) -> None:
-        base_geometry = self.base_polygons[base_names]
-        separator_geometry = self.separator_polygons[separator_names]
+        base_geometry = self.elements["base"][base_names]
+        separator_geometry = self.elements["separator"][separator_names]
         if union:
             base_geometry = unary_union(base_geometry)
 
