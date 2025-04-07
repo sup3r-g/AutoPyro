@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from shapely import contains
 
+from AutoPyro.core.base import Labels
 from base import GeometryList, Serializable
 from geometries import LabelArea, LabelCurve, LabelPoint, ranked_distances
 
@@ -65,9 +66,9 @@ class Chart(Serializable):
                 )
 
     def to_dataframe(
-        self, component: COMPONENTS = "points", **geopandas_kwargs
+        self, component: COMPONENTS = "points", geo: bool = True, **geopandas_kwargs
     ) -> pd.DataFrame:
-        return getattr(self, component).to_geopandas(**geopandas_kwargs)
+        return getattr(self, component).to_pandas(geo, **geopandas_kwargs)
 
     def geometries(self, component: COMPONENTS):
         try:
@@ -87,7 +88,7 @@ class Chart(Serializable):
             if fit_type == "ODR":
                 curve.fit_odr(model, initial_guess)
 
-    def classify_area(self, return_result: bool = True) -> list[tuple[Any, ...]] | None:
+    def classify_area(self, return_result: bool = True) -> list[Labels] | None:
         if not self.points or not self.areas:
             raise KeyError("Either points or areas are not present in the 'Chart'")
 
@@ -96,21 +97,21 @@ class Chart(Serializable):
         # np.array()
 
         for i, j in np.argwhere(inclusions):
-            self.points[j].label = self.areas[i].label.copy()
+            self.points[j].label.update(self.areas[i].label)
 
         if return_result:
             return self.points.labels
 
     def classify_distance(
         self, return_result: bool = True
-    ) -> list[tuple[Any, ...]] | None:
+    ) -> list[Labels] | None:
         if not self.points or not self.curves:
             raise KeyError("Either points or curves are not present in the 'Chart'")
 
         indices = ranked_distances(self.points, self.curves, k=1, indices_only=True)
 
         for j, i in indices.items():
-            self.points[j].label = self.curves[i[0]].label.copy()
+            self.points[j].label.update(self.curves[i[0]].label)
 
         if return_result:
             return self.points.labels

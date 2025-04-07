@@ -35,7 +35,7 @@ class ImagePlotDigitizer:
         return cls(image)
 
     def from_svg(cls, svg_file: str | os.PathLike):
-        return SVGParse(svg_file).svg2json()
+        return SVGParse(svg_file).to_dict()
 
     def _find_lines(self, angles):
         h, theta, d = transform.hough_line(self.binary_image, theta=angles)

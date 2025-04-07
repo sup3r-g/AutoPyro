@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-from base import Label
+from base import Labels
 from charts import Chart
 from geometries import LabelPoint
 
@@ -20,11 +20,11 @@ class ChartClassifier:
         X: float | npt.NDArray[np.float_],
         Y: float | npt.NDArray[np.float_],
         author: str,
-    ) -> list[tuple[Any, ...]] | None:
+    ) -> list[Labels] | None:
         plot = Chart.from_author(author)
         plot.add(
             *[
-                LabelPoint(x, y, Label("", ""))
+                LabelPoint(x, y, Labels({}))
                 for x, y in zip(X, Y)
                 if not np.isnan(x) and not np.isnan(y)
             ]

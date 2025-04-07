@@ -3,7 +3,7 @@ import os
 import re
 from collections import defaultdict
 from dataclasses import asdict
-from typing import Any, Self, Union
+from typing import Any, Optional, Self, Union
 
 import numpy as np
 
@@ -22,7 +22,7 @@ from AutoPyro.core.models import (
     PlotModel,
     PlotSettingsModel,
     PointModel,
-    StyleModel,
+    Style,
 )
 
 
@@ -57,14 +57,12 @@ class SVGParse:
         self,
         file_path: str | os.PathLike,
         plot_coords: list[list[float]],
-        image_coords: Union[list[list[float]], None] = None,
+        image_coords: Optional[list[list[float]]] = None,
     ) -> None:
         file_path = Path(file_path)
         self.svg = SVG.parse(file_path, transform="rotate(180)")
         self.name = file_path.stem
-        # os.path.splitext(os.path.basename(file_path))[0]
         self.title = file_path.parent.name
-        # os.path.basename(os.path.dirname(file_path))
         # (x_min, y_min), (x_max, y_max)
         self.image_coords = np.asarray(
             image_coords if image_coords else self._find_image_coords()
@@ -89,9 +87,9 @@ class SVGParse:
             label = found_label[0]
             label_name, *label_values = re.search(self.LABEL_PARSE, label).groups()
 
-            return label, label_name, label_values
+            return label, {label_name: label_values}
 
-        return None, None, None
+        return None, None
 
     def _convert_coords(self, coords: list[tuple[float]], log: bool = False):
         if log:
@@ -147,25 +145,24 @@ class SVGParse:
             # y_min + y_max
             points = self._convert_coords(points, log=log)
 
-            label, label_name, label_values = self._label_from_element(element)
-            if label:
+            label, label_dict = self._label_from_element(element)
+            if label is not None:
                 curves_dict[label] = asdict(
                     CurveModel(
-                        style=StyleModel(
+                        style=Style(
+                            Polygon,
                             color=element.stroke.hex,
                             width=element.stroke_width,
                         ),
-                        label=LabelModel(
-                            name=label_name,
-                            value=[val for val in label_values if val],
-                        ),
+                        label=LabelModel(label_dict),
+                        # {label_name: [val for val in label_values if val]},
                         divider=divider,
                         equation=EquationModel(curve_type=None, params=[]),
                         points=[
                             PointModel(
                                 x=points[:, 0].tolist(),
                                 y=points[:, 1].tolist(),
-                                label=LabelModel("", ""),
+                                label=LabelModel(),
                             )
                         ],
                     )
@@ -187,7 +184,7 @@ class SVGParse:
             point = self._convert_coords(point, log=log)
 
             _, label_name, label_values = self._label_from_element(point)
-            if label_name:
+            if label_name is not None:
                 markers_list.append((Point(point), (label_name, label_values[0])))
 
         return markers_list
@@ -230,9 +227,9 @@ class SVGParse:
     #         name, values = markers_labels[j]
     #         areas_dict[f"{name}: {values}"] = asdict(
     #             AreaModel(
-    #                 label=LabelModel(name=name, value=values),
+    #                 label=LabelModel({name: values}),
     #                 points=[
-    #                     PointModel(x=x.tolist(), y=y.tolist(), label=LabelModel("", ""))
+    #                     PointModel(x=x.tolist(), y=y.tolist(), label=LabelModel())
     #                 ],
     #             )
     #         )
@@ -249,15 +246,15 @@ class SVGParse:
             points = self._convert_coords(points, log=log)
 
             label, label_name, label_values = self._label_from_element(element)
-            if label:
+            if label is not None:
                 areas_dict[label] = asdict(
                     AreaModel(
-                        label=LabelModel(name=label_name, value=label_values),
+                        label=LabelModel({label_name: label_values}),
                         points=[
                             PointModel(
                                 x=points[:, 0].tolist(),
                                 y=points[:, 1].tolist(),
-                                label=LabelModel("", ""),
+                                label=LabelModel(),
                             )
                         ],
                     )
@@ -267,7 +264,7 @@ class SVGParse:
 
     def to_dict(
         self,
-        step: int = 1000,
+        step: int = 500,
         divider: bool = False,
         log: bool = False,
         grid: bool = True,
@@ -300,7 +297,7 @@ class SVGParse:
 
     def to_json(
         self,
-        step: int = 1000,
+        step: int = 500,
         divider: bool = False,
         log: bool = False,
         grid: bool = True,

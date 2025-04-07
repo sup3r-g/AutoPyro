@@ -5,8 +5,8 @@ from typing import Any, Literal, Self, Union
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
-from shapely.ops import polygonize, split, unary_union
-from shapely.geometry import MultiPolygon, Point, Polygon
+# from shapely.ops import polygonize, split, unary_union
+from shapely.geometry import Point
 
 from base import Style
 from data import DataTable
@@ -27,7 +27,7 @@ class MapElement:
 
     @classmethod
     def from_file(cls, file: str | os.PathLike, **geopandas_kwargs) -> Self:
-        return cls(name = Path(file).stem, gpd.read_file(file, **geopandas_kwargs))
+        return cls(Path(file).stem, gpd.read_file(file, **geopandas_kwargs))
 
 
 class Map:

@@ -5,7 +5,7 @@ from typing import Any, Optional
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from base import BaseCalculator, Label
+from base import BaseCalculator, Labels
 from charts import Chart
 from geometries import LabelCurve, LabelPoint, average_curves, minimal_distances
 from helpers import get_all_of_object_type
@@ -57,12 +57,16 @@ class HIo:
         ) -> list[Any]:
             plot = Chart.from_author(author)
             labelled_points = [
-                LabelPoint(x, y, Label("", ""))
+                LabelPoint(x, y, Labels({"": ""}))
                 for x, y in zip(T_max, HI)
                 # if not np.isnan(x) and not np.isnan(y)
             ]
             hi_curves = sorted(
-                [curve for curve in plot.curves if curve.label.name == HIo.SELECTOR],
+                [
+                    curve
+                    for curve in plot.curves
+                    if curve.label.get(HIo.SELECTOR) is not None
+                ],
                 # Value with maximum y coordinate
                 key=lambda curve: curve.coords[0][1],
                 reverse=True,
@@ -81,7 +85,7 @@ class HIo:
                                 len(target_coords),
                             )
                         ],
-                        Label(hi_curves[-1].label.name, "IV"),
+                        Labels(hi_curves[-1].label.name, "IV"),
                     )
                 )
 

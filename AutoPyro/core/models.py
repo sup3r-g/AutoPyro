@@ -1,58 +1,46 @@
 from dataclasses import dataclass
-from typing import Any, Optional, Sequence
-from matplotlib.artist import ArtistInspector
+from typing import Any, Optional, Sequence, TypeAlias
+
+from matplotlib.artist import Artist, ArtistInspector
 from matplotlib.lines import Line2D
 from matplotlib.patches import PathPatch
 from matplotlib.typing import ColorType
 from shapely import LineString, Point, Polygon
-
-
-@dataclass
-class LabelModel:
-    name: str  # "GENERATION POTENTIAL"
-    value: str | Sequence[str]  # ["Fair", "Poor"]
-
-
-@dataclass
-class EquationModel:
-    curve_type: Optional[str] = None
-    params: Sequence[float] = ()  # [1.2, 4, 7.5]
-
-
-# @dataclass
-# class Style:
-#     color: ColorType
-#     edgecolor: Any
-#     facecolor: Any
-#     width: float
-#     joinstyle: str = "miter"
-#     alpha: Optional[float] = None
-#     capstyle: str = "butt"
-#     fillstyle: str = "full"
-#     linestyle: str = "-"
-#     linewidth: float = 1.5
-#     # Marker
-#     marker: Optional[str] = None
-#     markeredgecolor: ColorType = "C0"
-#     markeredgewidth: float = 1.0
-#     markerfacecolor: ColorType = "C0"
-#     markerfacecoloralt: str = "none"
-#     markersize: float = 6.0
-#     # Solid
-#     solid_capstyle: str = "projecting"
-#     solid_joinstyle: str = "round"
-#     # Dash
-#     dash_capstyle: str = "butt"
-#     dash_joinstyle: str = "round"
+from shapely.geometry.base import BaseGeometry
 
 
 class Style:
+    __slots__ = "valid_properties", "values"
 
     MATPLOTLIB_SHAPES_MAP = {
         LineString: Line2D,
         Point: Line2D,
         Polygon: PathPatch,
     }
+
+    # color: ColorType
+    # edgecolor: Any
+    # facecolor: Any
+    # width: float
+    # joinstyle: str = "miter"
+    # alpha: Optional[float] = None
+    # capstyle: str = "butt"
+    # fillstyle: str = "full"
+    # linestyle: str = "-"
+    # linewidth: float = 1.5
+    # # Marker
+    # marker: Optional[str] = None
+    # markeredgecolor: ColorType = "C0"
+    # markeredgewidth: float = 1.0
+    # markerfacecolor: ColorType = "C0"
+    # markerfacecoloralt: str = "none"
+    # markersize: float = 6.0
+    # # Solid
+    # solid_capstyle: str = "projecting"
+    # solid_joinstyle: str = "round"
+    # # Dash
+    # dash_capstyle: str = "butt"
+    # dash_joinstyle: str = "round"
 
     IGNORE = (
         "agg_filter",
@@ -66,7 +54,7 @@ class Style:
         "gid",
         "in_layout",
         "label",
-        "markevery",
+        "markevery",  # ?
         "mouseover",
         "path_effects",
         "picker",
@@ -82,48 +70,84 @@ class Style:
         "zorder",
     )
 
-    def __init__(self, geometry, **style_kwargs) -> None:
-        inspector = ArtistInspector(geometry)
-        self.arguments = inspector.get_setters()
-        self.arguments = inspector.get_setters()
-        self.valid_values = [inspector.get_valid_values(arg) for arg in self.arguments]
+    def __init__(self, obj: BaseGeometry | Artist, **style_kwargs: Any) -> None:
+        if isinstance(obj, BaseGeometry):
+            obj = self.MATPLOTLIB_SHAPES_MAP.get(obj, Line2D)
+
+        inspector = ArtistInspector(obj)
+        self.valid_properties = {
+            arg: inspector.get_valid_values(arg)
+            for arg in inspector.get_setters()
+            if arg not in self.IGNORE
+        }
+        self.values = {
+            k: v for k, v in style_kwargs.items() if k in self.valid_properties
+        }
 
     def __getitem__(self, item):
-        return getattr(self, item)
+        return getattr(self.values, item)
 
-    def __call__(self, *args: Any, **kwds: Any) -> Any:
-        pass
+    def update(self, values: dict[str, Any]) -> None:
+        self.values.update(values)
 
-    def verify(self, *style_args, **style_kwargs) -> list[Any]:
-        return [arg for arg in style_args if arg in self.arguments] + [
-            arg for arg in style_kwargs.keys() if arg in self.arguments
+    def validate(self, *style_args, **style_kwargs: Any) -> list[Any]:
+        return [arg for arg in style_args if arg in self.valid_properties] + [
+            arg for arg in style_kwargs.keys() if arg in self.valid_properties
         ]
+
+    def kwargs_passthrough(self, kwargs, mpl_kwargs):
+        """
+        This will not modify kwargs for you.
+        This function is taken from:
+        https://github.com/mpl-extensions/mpl-interactions
+        """
+
+        kwargs = dict(kwargs)
+        passthrough = {}
+        for k in mpl_kwargs:
+            if k in kwargs:
+                passthrough[k] = kwargs.pop(k)
+
+        return kwargs, passthrough
 
 
 class AreasStyle(Style):
-    pass
+    def __init__(self, **style_kwargs: Any) -> None:
+        super().__init__(Polygon, **style_kwargs)
 
 
 class CurvesStyle(Style):
-    pass
+    def __init__(self, **style_kwargs: Any) -> None:
+        super().__init__(LineString, **style_kwargs)
 
 
 class PointsStyle(Style):
-    pass
+    def __init__(self, **style_kwargs: Any) -> None:
+        super().__init__(Point, **style_kwargs)
+
+
+JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
+LabelModel: TypeAlias = dict  # {"GENERATION POTENTIAL": ["Fair", "Poor"]}
+
+
+@dataclass
+class EquationModel:
+    curve_type: Optional[str] = None
+    params: Sequence[float] = ()  # [1.2, 4, 7.5]
 
 
 @dataclass
 class PointModel:
     x: Sequence[float]
     y: Sequence[float]
-    label: LabelModel
+    label: Optional[LabelModel]
     name: str = ""
 
 
 @dataclass
 class CurveModel:
     style: Style
-    label: LabelModel
+    label: Optional[LabelModel]
     divider: Optional[bool]
     equation: EquationModel
     points: Sequence[PointModel]
@@ -132,7 +156,7 @@ class CurveModel:
 
 @dataclass
 class AreaModel:
-    label: LabelModel
+    label: Optional[LabelModel]
     # equation: EquationModel
     points: Sequence[PointModel]
     name: str = ""  # "GENERATION POTENTIAL: Fair"

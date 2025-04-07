@@ -2,52 +2,30 @@ from textwrap import fill
 from typing import Any, Iterable, Literal, Optional, Union
 
 import numpy as np
-from matplotlib.artist import ArtistInspector
+from charts import Chart
+from maps import Map
 from matplotlib.axes import Axes
+from matplotlib.colors import to_rgba
 from matplotlib.lines import Line2D
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
-from matplotlib.pyplot import get_cmap, subplots, gca
-from matplotlib.colors import to_rgba
-from shapely import (
-    Geometry,
-    LineString,
-    MultiLineString,
-    MultiPolygon,
-    Point,
-    Polygon,
-    get_coordinates,
-)
-
-from charts import Chart
-from maps import Map
+from matplotlib.pyplot import gca, get_cmap, subplots
+from matplotlib.typing import ColorType
+from shapely import LineString, MultiLineString, MultiPolygon, get_coordinates
 
 COLORS = get_cmap("hsv")(np.linspace(0, 1, 20))
 np.random.default_rng().shuffle(COLORS)
 
 
-MATPLOTLIB_SHAPES_MAP = {
-    LineString: Line2D,
-    Point: Line2D,
-    Polygon: PathPatch,
-}
-
-
-def matplotlib_args(geometry: Geometry) -> dict[str, Any]:
-    return ArtistInspector(MATPLOTLIB_SHAPES_MAP.get(geometry)).get_setters()
-
-
 def annotation_helper(
     line: LineString, place: Literal["left", "right", "center"] = "left"
-) -> tuple[tuple[float, float], tuple[int, int]]:
+) -> tuple[tuple[float, ...], tuple[int, int]]:
     if place == "left":
         return tuple(list(line.coords)[0]), (15, 10)
     if place == "right":
         return tuple(list(line.coords)[-1]), (-15, 10)
     if place == "center":
         return tuple(line.centroid.coords[0]), (15, 10)
-
-    # return (x, y), (x_text, y_text)
 
 
 """
@@ -77,14 +55,14 @@ def _path_from_polygon(polygon) -> Path:
 
 def plot_polygon(
     polygon,
-    ax=None,
+    ax: Optional[Axes] = None,
     add_points: bool = False,
-    color=None,
-    facecolor=None,
-    edgecolor=None,
-    linewidth=None,
+    color: Optional[ColorType] = None,
+    facecolor: Optional[ColorType] = None,
+    edgecolor: Optional[ColorType] = None,
+    linewidth: Optional[float] = None,
     **kwargs,
-):
+) -> tuple[PathPatch, Line2D] | PathPatch:
     if ax is None:
         ax = _default_ax()
 
@@ -118,8 +96,13 @@ def plot_polygon(
 
 
 def plot_line(
-    line, ax=None, add_points: bool = False, color=None, linewidth=2, **kwargs
-):
+    line,
+    ax: Optional[Axes] = None,
+    add_points: bool = False,
+    color: Optional[ColorType] = None,
+    linewidth: float = 2,
+    **kwargs,
+) -> tuple[PathPatch, Line2D] | PathPatch:
     if ax is None:
         ax = _default_ax()
 
@@ -146,7 +129,7 @@ def plot_line(
     return patch
 
 
-def plot_points(geom, ax=None, color=None, marker="o", **kwargs):
+def plot_points(geom, ax=None, color=None, marker="o", **kwargs) -> Line2D:
     if ax is None:
         ax = _default_ax()
 
@@ -154,6 +137,7 @@ def plot_points(geom, ax=None, color=None, marker="o", **kwargs):
     (line,) = ax.plot(
         coords[:, 0], coords[:, 1], linestyle="", marker=marker, color=color, **kwargs
     )
+
     return line
 
 
@@ -164,6 +148,8 @@ class CanvasPlot:
         self,
         plot_object: Chart,
         figsize: tuple[int],
+        grid: bool = False,
+        log: bool = False,
         axes: Optional[Axes] = None,
         **figure_kwargs,
     ) -> None:
@@ -175,26 +161,31 @@ class CanvasPlot:
         else:
             self.axes = axes
 
-        self._set_canvas_props()
+        self._set_canvas_props(self.plot.name, axis_labels, grid, log)
 
     def add_areas(
-        self, alpha: float = 0.6, annotations: bool = False, **mpl_kwargs
+        self, alpha: float = 0.6, annotations: bool = False, **matplotlib
     ) -> None:
         if self.plot.areas:
             for i, area in enumerate(self.plot.areas):
+                # area.style.update(**matplotlib)
+                label = str(area.label) if annotations else ""
                 plot_polygon(
-                    area.geometry,
-                    add_points=False,
+                    polygon=area.geometry,
                     ax=self.axes,
+                    add_points=False,
+                    label=label,
+                    # Style
                     alpha=alpha if alpha else area.style.alpha,
                     facecolor=area.style.color if area.style.color else COLORS[i],
+                    # Don't change unless specified
                     edgecolor="k",
-                    label=str(area.label),
-                    **mpl_kwargs,
+                    **matplotlib,
                 )
+
                 if annotations:
                     self.axes.annotate(
-                        str(area.label),
+                        label,
                         xy=area.centroid.coords[0],
                         xytext=(0, 0),
                         textcoords="offset points",
@@ -209,18 +200,19 @@ class CanvasPlot:
         self,
         annotations: bool = False,
         place: Literal["left", "right", "center"] = "left",
-        **mpl_kwargs,
+        **matplotlib,
     ) -> None:
         if self.plot.curves:
             for _, curve in enumerate(self.plot.curves):
+                # curve.style.update(**matplotlib)
                 label = str(curve.label) if annotations else ""
                 self.axes.plot(
                     *curve.xy,
-                    # add_points=False,
+                    label=label,
+                    # Style
                     color=curve.style.color,
                     linewidth=curve.style.width,
-                    label=label,
-                    **mpl_kwargs,
+                    **matplotlib,
                 )
 
                 if annotations:
@@ -229,7 +221,7 @@ class CanvasPlot:
                         label,
                         xy=xy,
                         xytext=xytext,
-                        textcoords="offset points",  # "offset fontsize"
+                        textcoords="offset points",
                         fontsize=14,
                         ha="center",
                         va="center",
@@ -237,19 +229,23 @@ class CanvasPlot:
         else:
             raise KeyError("No curves in the 'Chart'")
 
-    def add_points(self, color: str, annotations: bool = False, **mpl_kwargs) -> None:
+    def add_points(self, annotations: bool = False, **matplotlib) -> None:
         if self.plot.points:
             for _, point in enumerate(self.plot.points):
+                # point.style.update(**matplotlib)
+                label = str(point.label) if annotations else ""
                 coords = get_coordinates(point)
                 self.axes.plot(
                     coords[:, 0],
                     coords[:, 1],
+                    label=label,
+                    # Style
+                    color=point.style.color,
+                    # Don't change unless specified
                     linestyle="",
                     marker="o",
-                    color=color,
                     edgecolors="k",
-                    label=str(point.label) if annotations else "",
-                    **mpl_kwargs,
+                    **matplotlib,
                 )
         else:
             raise KeyError("No points in the 'Chart'")
@@ -305,7 +301,7 @@ class CanvasMap:
         self._set_canvas_props()
 
     def add_shapes(
-        self, label: str, alpha: float, color: str, legend: bool = False, **mpl_kwargs
+        self, label: str, alpha: float, color: str, legend: bool = False, **matplotlib
     ) -> None:
         if self.map.elements:
             for i, shape in enumerate(self.map.elements):
@@ -317,7 +313,7 @@ class CanvasMap:
                     linewidth=width,
                     ax=self.axes,
                     label=label,
-                    **mpl_kwargs,
+                    **matplotlib,
                 )
                 # if legend:
                 #     self.legend_label.append(
