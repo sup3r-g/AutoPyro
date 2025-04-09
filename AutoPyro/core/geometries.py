@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Literal, Optional, Self, Sequence
+from typing import Any, Literal, Optional, Sequence
 
 import numpy as np
 from base import Direction, Equation, GeometryList, LabelGeometry, Labels, Style
@@ -15,6 +15,18 @@ from shapely import (
     line_interpolate_point,
 )
 
+__all__ = [
+    "LabelPoint",
+    "LabelArea",
+    "LabelCurve",
+    "LabelMultiPoint",
+    "LabelMultiCurve",
+    "resample_equal_points",
+    "average_curves",
+    "ranked_distances",
+    "minimal_distances",
+]
+
 
 class LabelPoint(LabelGeometry):
 
@@ -28,14 +40,6 @@ class LabelPoint(LabelGeometry):
     ) -> None:
         super().__init__(Point(x, y), label, style, **properties)
 
-    # @classmethod
-    # def from_dict(cls, init_dict: dict[str, Any]) -> Self:
-    #     return cls(
-    #         init_dict["x"],
-    #         init_dict["y"],
-    #         Labels(init_dict["label"]),
-    #     )
-
 
 class LabelArea(LabelGeometry):
     # Area = Polygon
@@ -43,18 +47,11 @@ class LabelArea(LabelGeometry):
     def __init__(
         self,
         coordinates: Sequence,
-        label: Optional[Labels] = None,
+        label: Optional[Labels | dict[str, Any]] = None,
         style: Optional[Style | dict[str, Any]] = None,
         **properties,
     ) -> None:
         super().__init__(Polygon(coordinates), label, style, **properties)
-
-    # @classmethod
-    # def from_dict(cls, init_dict: dict) -> Self:
-    #     return cls(
-    #         coordinates=list(zip(*init_dict["points"].values())),
-    #         label=Labels(init_dict["label"]),
-    #     )
 
     # # Remove this method
     # def contains_points(
@@ -67,38 +64,24 @@ class LabelArea(LabelGeometry):
 
 
 class LabelCurve(LabelGeometry):
-    __slots__ = "equation", "style"
+    __slots__ = "equation"
     # Curve = LineString
 
     def __init__(
         self,
         coordinates: Sequence,
-        label: Optional[Labels] = None,
         equation: Optional[Equation] = None,
+        label: Optional[Labels | dict[str, Any]] = None,
         style: Optional[Style | dict[str, Any]] = None,
         **properties: Any,  # color: str, width: str
     ) -> None:
         super().__init__(LineString(coordinates), label, style, **properties)
         self.equation = equation
 
-    # @classmethod
-    # def from_dict(cls, init_dict: dict[str, Any]) -> Self:
-    #     return cls(
-    #         coordinates=list(zip(*init_dict["points"].values())),
-    #         label=Labels(init_dict["label"]),
-    #         equation=(
-    #             Equation.from_dict(init_dict["equation"])
-    #             if init_dict["equation"]["curve_type"]
-    #             else None
-    #         ),
-    #         color=init_dict["color"],
-    #         width=init_dict["width"],
-    #     )
-
     def fit(
         self, strategy: Literal["ols", "odr"], model: str = "linear", initial_guess=None
     ):
-        fitter = CurveFitter(*np.asarray(self))  # self.points()
+        fitter = CurveFitter(*np.asarray(self))
         if strategy == "ols":
             return fitter.fit_ols(model, initial_guess)
 
@@ -118,7 +101,7 @@ class LabelCurve(LabelGeometry):
     def normals(
         self, length: float = 50.0, direction: Direction = "up"
     ) -> tuple[tuple[list[tuple[float, float]], Any], ...]:
-        x, y = np.asarray(self)  # self.points()
+        x, y = np.asarray(self)
         x1, y1, x2, y2 = x[:-1], y[:-1], x[1:], y[1:]
         x_vect, y_vect = x2 - x1, y2 - y1
         norm = (np.hypot(x_vect, y_vect) * 1 / length).flatten()
@@ -136,7 +119,7 @@ class LabelMultiPoint(LabelGeometry):
     def __init__(
         self,
         *points: Point,
-        label: Optional[Labels] = None,
+        label: Optional[Labels | dict[str, Any]] = None,
         style: Optional[Style | dict[str, Any]] = None,
         **properties,
     ) -> None:
@@ -174,7 +157,7 @@ def resample_equal_points(
         (
             LabelCurve(
                 line_interpolate_point(curve, steps, normalized=True),
-                curve.label,
+                label=curve.label,
             )
             for curve in curves
         )
@@ -211,7 +194,7 @@ def ranked_distances(
     curves: Sequence[LabelCurve],
     k: int = 2,
     indices_only: bool = False,
-) -> dict[int, dict[int, tuple[int, float]] | list[int]]:
+) -> dict[int, dict[int, Any] | list[int]]:
     if k > len(points):
         raise ValueError(
             "Number of distances must me less or equal (<=) to number of 'points'"

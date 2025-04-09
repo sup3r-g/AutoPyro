@@ -1,0 +1,30 @@
+{
+    "linear": {
+        "arguments": ["a", "b"],
+        "body": "a * x + b"
+    },
+    "power": {
+        "arguments": ["a", "b", "c", "d"],
+        "body": "a * (x - d) ** b + c"
+    },
+    "exponential": {
+        "arguments":["a", "b", "c", "d", "e"],
+        "body": "a * b ** (e * (x - d)) + c"
+    },
+    "logarithmic": {
+        "arguments": ["a", "b", "c", "d", "e"],
+        "body": "a * log(e * (x - d)) / log(b) + c"
+    },
+    "polynomial": {
+        "arguments": ["*coefficients"],
+        "body": "sum((c * x**i for i, c in enumerate(reversed(coefficients))))"
+    },
+    "gaussian": {
+        "arguments": ["a", "b", "c", "d"],
+        "body": "a * exp ** (-((x - b) ** 2) / (2 * c**2)) + d"
+    },
+    "sigmoid": {
+        "arguments": ["a", "k", "b", "q", "c", "m"],
+        "body": "(k - a) / (q * exp(b * (x - m)) + c) + a"
+    }
+}

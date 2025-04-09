@@ -152,7 +152,7 @@ class DataTable:
 
     def get_statistics(
         self, *columns, group: Union[str, None] = None, as_dict: bool = False
-    ) -> dict[Hashable, Any] | pd.DataFrame:
+    ) -> dict[str, Any] | pd.DataFrame:
         columns = list(columns) if columns else self.table.columns
 
         if group is not None:

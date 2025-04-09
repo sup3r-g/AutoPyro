@@ -5,6 +5,7 @@ from typing import Any, Optional
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+
 from base import BaseCalculator, Labels
 from charts import Chart
 from geometries import LabelCurve, LabelPoint, average_curves, minimal_distances
@@ -48,6 +49,7 @@ class HIo:
         ) -> float | npt.NDArray[np.float_]:
             return HI + HI * (T_max - 435) / 30
 
+    # Need to simplify this class
     class Chart(BaseCalculator):
         def __call__(
             self,
@@ -85,7 +87,7 @@ class HIo:
                                 len(target_coords),
                             )
                         ],
-                        Labels(hi_curves[-1].label.name, "IV"),
+                        label=Labels({hi_curves[-1].label.name, "IV"}),
                     )
                 )
 

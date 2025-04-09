@@ -102,16 +102,14 @@ class Chart(Serializable):
         if return_result:
             return self.points.labels
 
-    def classify_distance(
-        self, return_result: bool = True
-    ) -> list[Labels] | None:
+    def classify_distance(self, return_result: bool = True) -> list[Labels] | None:
         if not self.points or not self.curves:
             raise KeyError("Either points or curves are not present in the 'Chart'")
 
         indices = ranked_distances(self.points, self.curves, k=1, indices_only=True)
 
         for j, i in indices.items():
-            self.points[j].label.update(self.curves[i[0]].label)
+            self.points[j].label.update(self.curves[i][0].label)
 
         if return_result:
             return self.points.labels

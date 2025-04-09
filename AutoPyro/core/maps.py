@@ -63,7 +63,7 @@ class Map:
     ) -> list:
         element = self.elements.get(select_geometry)
         if element is not None:
-           return element.data.columns.to_list()
+            return element.data.columns.to_list()
 
         raise AttributeError("Invalid dataframe selection")
 
@@ -77,7 +77,7 @@ class Map:
 
         element = self.elements.get(select_geometry)
         if element is not None:
-           return element.data[column]
+            return element.data[column]
 
         raise AttributeError("Invalid dataframe selection")
 

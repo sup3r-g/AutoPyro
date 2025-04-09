@@ -11,8 +11,16 @@ from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from matplotlib.pyplot import gca, get_cmap, subplots
 from matplotlib.typing import ColorType
-from shapely import LineString, MultiLineString, MultiPolygon, get_coordinates
+from shapely import (
+    Geometry,
+    LineString,
+    MultiLineString,
+    MultiPolygon,
+    Polygon,
+    get_coordinates,
+)
 
+MARKERS = Line2D.markers
 COLORS = get_cmap("hsv")(np.linspace(0, 1, 20))
 np.random.default_rng().shuffle(COLORS)
 
@@ -41,7 +49,7 @@ def _default_ax():
     return ax
 
 
-def _path_from_polygon(polygon) -> Path:
+def _path_from_polygon(polygon: MultiPolygon | Polygon) -> Path:
     if isinstance(polygon, MultiPolygon):
         return Path.make_compound_path(
             *[_path_from_polygon(poly) for poly in polygon.geoms]
@@ -54,7 +62,7 @@ def _path_from_polygon(polygon) -> Path:
 
 
 def plot_polygon(
-    polygon,
+    polygon: MultiPolygon | Polygon,
     ax: Optional[Axes] = None,
     add_points: bool = False,
     color: Optional[ColorType] = None,
@@ -89,14 +97,14 @@ def plot_polygon(
     ax.autoscale_view()
 
     if add_points:
-        line = plot_points(polygon, ax=ax, color=color)
-        return patch, line
+        # patch, line
+        return patch, plot_points(polygon, ax=ax, color=color)
 
     return patch
 
 
 def plot_line(
-    line,
+    line: MultiLineString | LineString,
     ax: Optional[Axes] = None,
     add_points: bool = False,
     color: Optional[ColorType] = None,
@@ -123,13 +131,19 @@ def plot_line(
     ax.autoscale_view()
 
     if add_points:
-        line = plot_points(line, ax=ax, color=color)
-        return patch, line
+        # patch, line
+        return patch, plot_points(line, ax=ax, color=color)
 
     return patch
 
 
-def plot_points(geom, ax=None, color=None, marker="o", **kwargs) -> Line2D:
+def plot_points(
+    geom: Geometry,
+    ax: Optional[Axes] = None,
+    color: Optional[ColorType] = None,
+    marker: str = "o",
+    **kwargs,
+) -> Line2D:
     if ax is None:
         ax = _default_ax()
 
@@ -141,8 +155,13 @@ def plot_points(geom, ax=None, color=None, marker="o", **kwargs) -> Line2D:
     return line
 
 
+# Move all the common functions between CanvasPlot and CanvasMap here
+class CanvasBase:
+    pass
+
+
 class CanvasPlot:
-    # __slots__ = "plot", "figure", "axes"
+    # __slots__ = "plot", "legend_label", "axes"
 
     def __init__(
         self,
@@ -154,6 +173,7 @@ class CanvasPlot:
         **figure_kwargs,
     ) -> None:
         self.plot = plot_object
+        self.legend_label = []
         if axes is None:
             _, self.axes = subplots(
                 figsize=figsize, layout="constrained", **figure_kwargs
@@ -254,20 +274,25 @@ class CanvasPlot:
         self,
         title: str,
         labels: Iterable[str],
+        fontsize: int = 14,
         grid: bool = False,
         log: bool = False,
     ) -> None:
+        weight = "bold"
         self.axes.set(xlim=self.limits[0], ylim=self.limits[1])
-        self.axes.set_title(title, fontweight="bold", fontsize=18)
-        self.axes.tick_params(axis="both", labelsize=14)
+        self.axes.set_title(title, fontweight=weight, fontsize=fontsize + 4)  # 18
+        self.axes.tick_params(axis="both", labelsize=fontsize)
+
         if grid:
             self.axes.grid(True, which="major", axis="both", linestyle="-")
             self.axes.set_axisbelow(True)
+
         if log:
             self.axes.loglog()
+
         if labels:
-            self.axes.set_xlabel(labels[0], fontweight="bold", fontsize=14)
-            self.axes.set_ylabel(labels[1], fontweight="bold", fontsize=14)
+            self.axes.set_xlabel(labels[0], fontweight=weight, fontsize=fontsize)
+            self.axes.set_ylabel(labels[1], fontweight=weight, fontsize=fontsize)
 
     def draw(self, interactive: bool = False):
         self.axes.legend()

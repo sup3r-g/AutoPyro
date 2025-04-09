@@ -11,7 +11,6 @@ from charts import Chart
 from geometries import LabelPoint
 
 
-# TODO: Completely rework this shit!!!
 class ChartClassifier:
     COLUMN_NAME = "Base"
 
@@ -41,15 +40,14 @@ class ChartClassifier:
         Y: float | npt.NDArray[np.float_],
         *authors: str,
         return_all: bool = False,
-    ) -> list[tuple[Any, ...]] | None | list[list[tuple[Any, ...]]]:
-        if len(authors) == 1:
-            return cls.__classify(X, Y, authors[0])
-
+    ):
         statistics = [cls.__classify(X, Y, author) for author in authors]
+        if len(statistics) == 1:
+            return statistics[0]
+
         labels_authors = np.array(
             [point["value"] for info in statistics for point in info]
         )
-
         labels, ratios = np.unique(labels_authors, return_counts=True)
         mode = np.argwhere(ratios == np.max(ratios))
         ratios /= labels_authors.shape[0]

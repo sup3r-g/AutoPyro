@@ -9,9 +9,14 @@ import geopandas as gpd
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from shapely.geometry.base import BaseGeometry
 
-from models import Style
+from matplotlib.artist import Artist, ArtistInspector
+from matplotlib.lines import Line2D
+from matplotlib.patches import PathPatch
+from matplotlib.typing import ColorType
+
+from shapely import LineString, Point, Polygon
+from shapely.geometry.base import BaseGeometry
 
 
 class Direction(str, Enum):
@@ -97,6 +102,111 @@ class Equation(Serializable):
         return self.__class__(self.curve_type, self.params)
 
 
+class Style:
+    __slots__ = "valid_properties", "values"
+
+    MATPLOTLIB_SHAPES_MAP = {
+        LineString: Line2D,
+        Point: Line2D,
+        Polygon: PathPatch,
+    }
+
+    # color: ColorType
+    # edgecolor: Any
+    # facecolor: Any
+    # width: float
+    # joinstyle: str = "miter"
+    # alpha: Optional[float] = None
+    # capstyle: str = "butt"
+    # fillstyle: str = "full"
+    # linestyle: str = "-"
+    # linewidth: float = 1.5
+    # # Marker
+    # marker: Optional[str] = None
+    # markeredgecolor: ColorType = "C0"
+    # markeredgewidth: float = 1.0
+    # markerfacecolor: ColorType = "C0"
+    # markerfacecoloralt: str = "none"
+    # markersize: float = 6.0
+    # # Solid
+    # solid_capstyle: str = "projecting"
+    # solid_joinstyle: str = "round"
+    # # Dash
+    # dash_capstyle: str = "butt"
+    # dash_joinstyle: str = "round"
+
+    IGNORE = (
+        "agg_filter",
+        "animated",
+        "antialiased",
+        "clip_box",
+        "clip_on",
+        "clip_path",
+        "data",
+        "figure",
+        "gid",
+        "in_layout",
+        "label",
+        "markevery",  # ?
+        "mouseover",
+        "path_effects",
+        "picker",
+        "pickradius",
+        "rasterized",
+        "sketch_params",
+        "snap",
+        "transform",
+        "url",
+        "visible",
+        "xdata",
+        "ydata",
+        "zorder",
+    )
+
+    def __init__(self, obj: BaseGeometry | Artist, **style_kwargs: Any) -> None:
+        if isinstance(obj, BaseGeometry):
+            obj = self.MATPLOTLIB_SHAPES_MAP.get(obj, Line2D)
+
+        inspector = ArtistInspector(obj)
+        self.valid_properties = {
+            arg: inspector.get_valid_values(arg)
+            for arg in inspector.get_setters()
+            if arg not in self.IGNORE
+        }
+        self.values = {
+            k: v for k, v in style_kwargs.items() if k in self.valid_properties
+        }
+
+    def __getitem__(self, item):
+        return getattr(self.values, item)
+
+    def update(self, value: Self | dict[str, Any]) -> None:
+        if isinstance(value, Style):
+            value = value.values
+
+        self.values.update(value)
+
+    def validate(self, *style_args, **style_kwargs: Any) -> list[Any]:
+        return [arg for arg in style_args if arg in self.valid_properties] + [
+            arg for arg in style_kwargs.keys() if arg in self.valid_properties
+        ]
+
+    def kwargs_passthrough(self, kwargs, mpl_kwargs):
+        """
+        This will not modify kwargs for you.
+        This function is taken from:
+        https://github.com/mpl-extensions/mpl-interactions
+        """
+
+        kwargs = dict(kwargs)
+        passthrough = {}
+        for k in mpl_kwargs:
+            if k in kwargs:
+                passthrough[k] = kwargs.pop(k)
+
+        return kwargs, passthrough
+
+
 class Labels(dict):
     pass
 
@@ -159,8 +269,8 @@ class LabelGeometry(Serializable):
 
     @style.setter
     def style(self, value) -> None:
-        if not isinstance(value, Style):
-            raise TypeError(f"Not 'Style' type. Provided type: {type(value)}")
+        if not isinstance(value, (Style, dict)):
+            raise TypeError(f"Not 'Style' or 'dict' type. Provided type: {type(value)}")
 
         self._style.update(value)
 
@@ -212,7 +322,11 @@ class GeometryList(list):
 
     @property
     def labels(self) -> list[Labels]:
-        return [item.label for item in self]  # if item.label
+        return [item.label for item in self]
+
+    @property
+    def styles(self) -> list[Style]:
+        return [item.style for item in self]
 
     def insert(self, index, item) -> None:
         super().insert(index, self.__validate(item))
@@ -223,12 +337,15 @@ class GeometryList(list):
     def to_pandas(self, geo: bool = True) -> gpd.GeoDataFrame | pd.DataFrame:
         if geo:
             return gpd.GeoDataFrame(
-                self.labels,
-                geometry=self.geometries,
+                [self.labels, self.styles], geometry=self.geometries
             )
 
         return pd.DataFrame(
-            [[item.label for item in self], [item.geometry for item in self]]
+            [
+                [item.label for item in self],
+                [item.style for item in self],
+                [item.geometry for item in self],
+            ]
         )
 
     def extend(self, other) -> None:
@@ -246,6 +363,7 @@ class GeometryList(list):
         )
 
 
+# Do I need this Base class at all?
 class BaseCalculator:
     COLUMN_NAME = "NAME"
 
