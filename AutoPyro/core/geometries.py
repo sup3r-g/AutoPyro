@@ -46,21 +46,12 @@ class LabelArea(LabelGeometry):
 
     def __init__(
         self,
-        coordinates: Sequence,
+        coordinates: Sequence[float],
         label: Optional[Labels | dict[str, Any]] = None,
         style: Optional[Style | dict[str, Any]] = None,
         **properties,
     ) -> None:
         super().__init__(Polygon(coordinates), label, style, **properties)
-
-    # # Remove this method
-    # def contains_points(
-    #     self, *points: LabelPoint
-    # ) -> tuple[npt.NDArray, list[LabelPoint]]:
-    #     points_geoms = [point.geometry for point in points]
-    #     mask = np.nonzero(contains(self.geometry, points_geoms))[0]
-
-    #     return mask, [points[i] for i in mask]
 
 
 class LabelCurve(LabelGeometry):
@@ -69,11 +60,11 @@ class LabelCurve(LabelGeometry):
 
     def __init__(
         self,
-        coordinates: Sequence,
+        coordinates: Sequence[float],
         equation: Optional[Equation] = None,
         label: Optional[Labels | dict[str, Any]] = None,
         style: Optional[Style | dict[str, Any]] = None,
-        **properties: Any,  # color: str, width: str
+        **properties: Any,  # {color: str, width: str}
     ) -> None:
         super().__init__(LineString(coordinates), label, style, **properties)
         self.equation = equation
@@ -89,7 +80,6 @@ class LabelCurve(LabelGeometry):
             return fitter.fit_odr(model, initial_guess)
 
     def resample_equation(self, x_new: Sequence[float]) -> Sequence[float]:
-        # Add Shapely interpolate method here
         if not self.equation:
             raise AttributeError("curve_type is not defined for this curve")
 

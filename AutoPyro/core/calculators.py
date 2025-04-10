@@ -58,7 +58,8 @@ class HIo:
             author: str,
         ) -> list[Any]:
             plot = Chart.from_author(author)
-            labelled_points = [
+            labelled_points = LabelPoint.from_iterables(T_max, HI)
+            [
                 LabelPoint(x, y, Labels({"": ""}))
                 for x, y in zip(T_max, HI)
                 # if not np.isnan(x) and not np.isnan(y)

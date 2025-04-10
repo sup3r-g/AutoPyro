@@ -2,23 +2,34 @@
     "TransformationRatio": {
         "column_name": "TR",
         "classes": {
-            "Espitalie, 1987": "(HI_o - HI) * 1200 / HI_o * (1200 - HI)",
-            "Peters, 2005": "1 - (HI * TOC * (p - TOC_o)) / (HI_o * TOC_o * (p - TOC))"
+            "Espitalie, 1987": {
+                "arguments": ["HI", "HIo"],
+                "body": "(HIo - HI) * 1200 / HIo * (1200 - HI)"
+            },
+            "Peters, 2005": {
+                "arguments": ["HI", "HIo", "TOC", "TOCo", "p"],
+                "body": "1 - (HI * TOC * (p - TOCo)) / (HIo * TOCo * (p - TOC))"
+            }
         }
     },
     "HIo": {
         "column_name": "HIo",
         "selector": "MATTER TYPE",
         "classes": {
-            "Cornford, 2001": "HI + HI * (T_max - 435) / 30"
+            "Cornford, 2001": {
+                "arguments": ["HI", "Tmax"],
+                "body": "HI + HI * (Tmax - 435) / 30"
+            }
         }
     },
     "TOCo": {
         "column_name": "TOCo",
         "selector": "MATTER TYPE",
         "classes": {
-            "Peters, 2005": "p * HI * TOC / (HI_o * (1 - TR / 100) * (p - TOC) + HI * TOC)",
-            "Neruchev, 1998": ""
+            "Peters, 2005": {
+                "arguments": ["HI", "HIo", "TOC", "TR", "p"],
+                "body": "p * HI * TOC / (HI_o * (1 - TR / 100) * (p - TOC) + HI * TOC)"
+            }
         }
     }
 }

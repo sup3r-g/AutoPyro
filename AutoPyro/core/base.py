@@ -3,7 +3,7 @@ import os
 from copy import deepcopy
 from enum import Enum
 from itertools import chain
-from typing import Any, Generator, Iterable, Optional, Self
+from typing import Any, Generator, Iterable, Optional, Self, Sequence
 
 import geopandas as gpd
 import numpy as np
@@ -285,10 +285,13 @@ class LabelGeometry(Serializable):
         return cls(geometry(*geometry_args), label, style)
 
     @classmethod
-    def from_iterables(
-        cls, *geometries: BaseGeometry, labels: Optional[Labels] = None
-    ) -> Self:
-        return GeometryList(geometries)
+    def from_iterables(cls, *coordinates_args: Sequence[float]) -> "GeometryList":
+        return GeometryList(
+            [
+                cls(*coords, label=Labels())
+                for coords in zip(*coordinates_args, strict=True)
+            ]
+        )
 
     @classmethod
     def from_dict(cls, init_dict: dict[str, Any]) -> Self:
@@ -300,11 +303,19 @@ class LabelGeometry(Serializable):
     #     return self.__geo_interface__
 
 
-class GeometryList(list):
+class GeometryList(list):  # GeometryCollection
+    # Maybe make it GeometryCollection
+    # PROBLEM: GeometryCollection only accepts Geometry class
+    # So no Label or Style
+
     def __init__(self, iterable: Optional[Iterable[LabelGeometry]] = None) -> None:
         super().__init__(
             (self.__validate(item) for item in iterable) if iterable is not None else ()
         )
+        # self.collection = GeometryCollection(iterable)  # gpd.GeoDataFrame()
+
+    # def __getattr__(self, attr) -> Any:
+    #     return getattr(self.collection, attr)
 
     def __setitem__(self, index, item) -> None:
         super().__setitem__(index, self.__validate(item))
@@ -313,7 +324,7 @@ class GeometryList(list):
         return np.asarray(self)  # dtype=np.object_
 
     @classmethod
-    def create(cls, geometry: BaseGeometry, labels):
+    def create(cls, geometry: BaseGeometry, labels) -> Self:
         return cls((LabelGeometry(geometry, label) for label in labels))
 
     @property
@@ -334,19 +345,14 @@ class GeometryList(list):
     def append(self, item) -> None:
         super().append(self.__validate(item))
 
-    def to_pandas(self, geo: bool = True) -> gpd.GeoDataFrame | pd.DataFrame:
-        if geo:
-            return gpd.GeoDataFrame(
-                [self.labels, self.styles], geometry=self.geometries
-            )
-
-        return pd.DataFrame(
-            [
-                [item.label for item in self],
-                [item.style for item in self],
-                [item.geometry for item in self],
-            ]
+    def to_pandas(self, geo: bool = True, **kwargs) -> gpd.GeoDataFrame | pd.DataFrame:
+        dataframe = gpd.GeoDataFrame(
+            [self.labels, self.styles], geometry=self.geometries, **kwargs
         )
+        if geo:
+            return dataframe
+
+        return dataframe.to_wkt()
 
     def extend(self, other) -> None:
         if isinstance(other, type(self)):
@@ -355,7 +361,7 @@ class GeometryList(list):
             super().extend(self.__validate(item) for item in other)
 
     def __validate(self, value: Any) -> LabelGeometry:
-        if isinstance(value, LabelGeometry):
+        if isinstance(value, LabelGeometry):  # issubclass()
             return value
 
         raise TypeError(
