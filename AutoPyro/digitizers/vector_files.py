@@ -15,14 +15,16 @@ from svgelements import SVG, Circle, Ellipse, Path, Rect, Image
 
 from AutoPyro.core.models import (
     AreaModel,
+    AreaStyle,
     CurveModel,
+    CurveStyle,
     DataModel,
     EquationModel,
     LabelModel,
     PlotModel,
     PlotSettingsModel,
     PointModel,
-    Style,
+    PointStyle,
 )
 
 
@@ -87,7 +89,7 @@ class SVGParse:
             label = found_label[0]
             label_name, *label_values = re.search(self.LABEL_PARSE, label).groups()
 
-            return label, {label_name: label_values}
+            return label, {label_name: [val for val in label_values if val]}
 
         return None, None
 
@@ -149,13 +151,11 @@ class SVGParse:
             if label is not None:
                 curves_dict[label] = asdict(
                     CurveModel(
-                        style=Style(
-                            Polygon,
+                        style=CurveStyle(
                             color=element.stroke.hex,
                             width=element.stroke_width,
                         ),
                         label=LabelModel(label_dict),
-                        # {label_name: [val for val in label_values if val]},
                         divider=divider,
                         equation=EquationModel(curve_type=None, params=[]),
                         points=[
@@ -163,6 +163,7 @@ class SVGParse:
                                 x=points[:, 0].tolist(),
                                 y=points[:, 1].tolist(),
                                 label=LabelModel(),
+                                style=PointStyle()
                             )
                         ],
                     )
@@ -170,24 +171,24 @@ class SVGParse:
 
         return curves_dict
 
-    # TODO: Remove this method because we won't need it in with attribute labels
-    # `autopyro:label=value``
-    def _find_area_markers(self, log: bool = False) -> list:
-        markers_list = []
-        for element in self.svg.elements(
-            lambda elem: isinstance(elem, (Circle, Ellipse))
-        ):
-            point = np.atleast_2d(element.point(0))
-            point[:, 0] = np.abs(point[:, 0])
-            point[:, 1] += self.image_coords[:, 1].sum()  # = point[:, 1] +
-            # y_min + y_max
-            point = self._convert_coords(point, log=log)
+    # # TODO: Remove this method because we won't need it in with attribute labels
+    # # `autopyro:label=value``
+    # def _find_area_markers(self, log: bool = False) -> list:
+    #     markers_list = []
+    #     for element in self.svg.elements(
+    #         lambda elem: isinstance(elem, (Circle, Ellipse))
+    #     ):
+    #         point = np.atleast_2d(element.point(0))
+    #         point[:, 0] = np.abs(point[:, 0])
+    #         point[:, 1] += self.image_coords[:, 1].sum()  # = point[:, 1] +
+    #         # y_min + y_max
+    #         point = self._convert_coords(point, log=log)
 
-            _, label_name, label_values = self._label_from_element(point)
-            if label_name is not None:
-                markers_list.append((Point(point), (label_name, label_values[0])))
+    #         _, label_name, label_values = self._label_from_element(point)
+    #         if label_name is not None:
+    #             markers_list.append((Point(point), (label_name, label_values[0])))
 
-        return markers_list
+    #     return markers_list
 
     # def _areas(
     #     self, curves_dict: dict, markers_list: list, length_ratio: float = 0.1
@@ -245,11 +246,11 @@ class SVGParse:
             # y_min + y_max
             points = self._convert_coords(points, log=log)
 
-            label, label_name, label_values = self._label_from_element(element)
+            label, label_dict = self._label_from_element(element)
             if label is not None:
                 areas_dict[label] = asdict(
                     AreaModel(
-                        label=LabelModel({label_name: label_values}),
+                        label=LabelModel(label_dict),
                         points=[
                             PointModel(
                                 x=points[:, 0].tolist(),

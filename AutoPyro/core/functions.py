@@ -33,13 +33,13 @@ def logarithmic(x, a, b, c, d, e) -> float:
     return a * log(e * (x - d)) / log(b) + c
 
 
-def polynomial(x, *coefficients) -> float:
+def polynomial(x, *coefficients: float) -> float:
     """
     N-th order polynomial trend model function
     sum(a_i*x^i), i=0..n
     """
     # return a*x**2+b*x+c
-    return sum((c * x**i for i, c in enumerate(reversed(coefficients))))
+    return sum([c * x**i for i, c in enumerate(reversed(coefficients))])
 
 
 def gaussian(x, a, b, c, d):
@@ -78,7 +78,7 @@ class CurveFitter:
         initial_guess: Optional[Iterable[float]] = None,
     ):
         model_func = MODELS[model]
-        params, _ = curve_fit(
+        params, *_ = curve_fit(
             model_func,
             self.x,
             self.y,
@@ -95,10 +95,9 @@ class CurveFitter:
         initial_guess: Optional[Iterable[float]] = None,
     ):
         model_func = odr.Model(MODELS[model])
-        data = odr.Data(self.x, self.y)
         odr_obj = odr.ODR(
-            data,
-            model_func,
+            data=odr.Data(self.x, self.y),
+            model=model_func,
             beta0=initial_guess if initial_guess else self.__initial_guess(),
         )
 
