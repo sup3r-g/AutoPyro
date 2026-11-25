@@ -1,0 +1,7 @@
+Well;Longitude;Latitude;TOC;Family;Formation;MD;Date;Method
+A;10.00;60.00;1.0;Family A;Demo;1000;2020-01-01;Synthetic
+B;10.02;60.00;2.0;Family B;Demo;1000;2020-01-02;Synthetic
+C;10.00;60.02;3.0;Family A;Demo;1000;2020-01-03;Synthetic
+D;10.02;60.02;4.0;Family B;Demo;1000;2020-01-04;Synthetic
+E;10.01;60.01;2.5;Family A;Demo;1000;2020-01-05;Synthetic
+A;10.00;60.00;1.4;Family A;Demo;1005;2022-01-01;Synthetic

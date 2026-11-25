@@ -1,0 +1,4 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[9.995,59.995],[10.012,59.995],[10.012,60.025],[9.995,60.025],[9.995,59.995]]]},"properties":{"site":"Demo west"}},
+{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[10.008,59.995],[10.025,59.995],[10.025,60.025],[10.008,60.025],[10.008,59.995]]]},"properties":{"site":"Demo east"}}
+]}

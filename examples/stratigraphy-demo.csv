@@ -1,0 +1,6 @@
+wellbore_name;unit_name;unit_level;top_depth_m;bottom_depth_m
+Well A;Demo group;GROUP;0;3500
+Well A;Demo upper;FORMATION;0;2000
+Well A;Demo lower;FORMATION;2000;3500
+Well B;Demo group;GROUP;0;3500
+Well B;Demo formation;FORMATION;0;3500
