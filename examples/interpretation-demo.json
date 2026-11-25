@@ -1,0 +1,22 @@
+{
+  "format": "autopyro.interpretation",
+  "version": 1,
+  "id": "synthetic-toc-hi-demo",
+  "revision": "1",
+  "name": "Демонстрация геометрии TOC–HI (не научная классификация)",
+  "source": "Синтетический пример AutoPyro; области A/B выбраны произвольно для проверки геометрии",
+  "scientific_status": "demonstration",
+  "coordinate_space": "analysis",
+  "boundary_policy": "flag",
+  "tolerance": 0,
+  "distance_metric": null,
+  "x": {"property": "TOC", "unit": "%wt", "transform": "identity", "origin": 0, "scale": 1},
+  "y": {"property": "HI", "unit": "mg HC/g TOC", "transform": "identity", "origin": 0, "scale": 1},
+  "regions": [
+    {"id": "A", "label": "Область A (демо)", "color": "#0072B2",
+     "geometry": {"type": "Polygon", "coordinates": [[[0, 0], [2, 0], [2, 500], [0, 500], [0, 0]]]}},
+    {"id": "B", "label": "Область B (демо)", "color": "#D55E00",
+     "geometry": {"type": "Polygon", "coordinates": [[[2, 0], [4, 0], [4, 500], [2, 500], [2, 0]]]}}
+  ],
+  "lines": []
+}

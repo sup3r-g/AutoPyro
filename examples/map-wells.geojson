@@ -1,0 +1,7 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","geometry":{"type":"Point","coordinates":[10.00,60.00]},"properties":{"Well":"A"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[10.02,60.00]},"properties":{"Well":"B"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[10.00,60.02]},"properties":{"Well":"C"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[10.02,60.02]},"properties":{"Well":"D"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[10.01,60.01]},"properties":{"Well":"E"}}
+]}

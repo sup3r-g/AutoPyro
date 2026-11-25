@@ -1,0 +1,26 @@
+name: autopyro-geochem
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: geochemistry
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-autopyro_local}
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=C
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+      - ./database/migrations/005_analysis_catalogs.sql:/docker-entrypoint-initdb.d/005-analysis-catalogs.sql:ro
+      - ./database:/checks:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d geochemistry -h 127.0.0.1"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+volumes:
+  postgres_data:

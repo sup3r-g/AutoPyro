@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autopyro"
+version = "0.1.1rc3"
+description = "Desktop workspace for pyrolysis data"
+requires-python = ">=3.12"
+dependencies = ["PySide6>=6.8,<7", "openpyxl>=3.1,<4", "pandas>=2.2,<4", "numpy>=2,<3", "scipy>=1.14,<2", "psycopg[binary]>=3.2,<4", "matplotlib>=3.10,<4", "stratapy>=1.0.1,<1.1", "shapely>=2.0,<3", "reportlab>=4.4,<5", "python-docx>=1.2,<2", "pyproj>=3.7,<4", "pyogrio>=0.11,<1", "geopandas>=1.1,<2"]
+
+[project.optional-dependencies]
+visualization = ["seaborn>=0.13", "ultraplot"]
+test = ["pytest>=8,<10", "pytest-qt>=4.4,<5", "pypdf>=5,<7"]
+
+[project.scripts]
+autopyro = "autopyro.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["autopyro*"]
+exclude = ["autopyro.database.tools*"]
+
+[tool.setuptools.package-data]
+"autopyro.geology" = ["chronostratigraphic_colors.json"]
+"autopyro.schemes" = ["published_curves.json", "svg_interpretation.json"]
+"autopyro.ui" = ["assets/*.png"]
+"autopyro.ui.i18n" = ["translations/*.qm", "translations/*.ts"]
+"autopyro.ui.theme" = ["assets/*", "assets/lucide/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+qt_api = "pyside6"

@@ -1,0 +1,44 @@
+{
+  "format": "autopyro.interpretation",
+  "version": 1,
+  "id": "synthetic-interpretation-reference-cases",
+  "revision": "1",
+  "name": "Эталонные пробы TOC–HI",
+  "source": "Синтетические случаи из аудита AutoPyro",
+  "scientific_status": "demonstration",
+  "coordinate_space": "analysis",
+  "boundary_policy": "flag",
+  "tolerance": 0,
+  "x": {"property": "TOC", "unit": "%wt"},
+  "y": {"property": "HI", "unit": "mg HC/g TOC"},
+  "regions": [
+    {
+      "id": "A",
+      "label": "Демонстрационная область",
+      "geometry": {"type": "Polygon", "coordinates": [[[0, 0], [2, 0], [2, 500], [0, 500], [0, 0]]]}
+    }
+  ],
+  "lines": [
+    {
+      "id": "cutoff",
+      "label": "Демонстрационный порог HI",
+      "geometry": {"type": "LineString", "coordinates": [[2.5, 100], [4, 100]]},
+      "threshold": {"axis": "y", "less": "Ниже порога", "greater": "Выше порога"}
+    }
+  ],
+  "reference_cases": [
+    {
+      "id": "interval-leaves-one-region",
+      "x": 1.9,
+      "y": 200,
+      "x_bounds": [1.7, 2.1],
+      "expected": {"status": "ambiguous", "regions": ["A"], "uncertainty_regions": ["A"]}
+    },
+    {
+      "id": "above-threshold",
+      "x": 3,
+      "y": 200,
+      "expected": {"status": "classified", "thresholds": {"cutoff": "greater"}}
+    }
+  ]
+}

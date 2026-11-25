@@ -1,0 +1,115 @@
+{
+  "database": "geochemistry",
+  "restore_database": "geochem_restorecheck_20261024_3efe0b53",
+  "status": "PASS",
+  "sha256": "a1e473a064f3c7ea04ba568d9646ed75469d16f8ff7a0a85f7ebca318bfce164",
+  "archive_bytes": 22601107,
+  "tables_verified": 14,
+  "sequences_verified": 11,
+  "views_verified": 3,
+  "constraints_verified": 104,
+  "tables": {
+    "geochem.analysis_result": {
+      "rows": 1056734,
+      "content_md5": "b5d656ea71a3cf2c51f7ed134b8244d4"
+    },
+    "geochem.analysis_run": {
+      "rows": 80495,
+      "content_md5": "3342cd6ed5a8ec57f90de8145e82262e"
+    },
+    "geochem.data_group": {
+      "rows": 56,
+      "content_md5": "236fbd7652d27d33d77d36a9bee22fe5"
+    },
+    "geochem.import_batch": {
+      "rows": 2,
+      "content_md5": "eb57730eb229a26ae910c6441dc6da71"
+    },
+    "geochem.lithostrat_unit": {
+      "rows": 51,
+      "content_md5": "ee2acf56fb9e1784ede37e67300635ff"
+    },
+    "geochem.lithostrat_wellbore": {
+      "rows": 181,
+      "content_md5": "6fdf5b12c6aec6355c686fb4a04512c6"
+    },
+    "geochem.reference_document": {
+      "rows": 92,
+      "content_md5": "8aaf3588d94f7d689ac5551f9c00a613"
+    },
+    "geochem.sample": {
+      "rows": 31665,
+      "content_md5": "e4c6549fcead3b09b5a9bf95ae86c61d"
+    },
+    "geochem.sample_geology": {
+      "rows": 31593,
+      "content_md5": "359e66ad7cae52c4aa1fce18246305f0"
+    },
+    "geochem.source_field": {
+      "rows": 4262,
+      "content_md5": "e76df05c72e6b66cb63b5b5fbd030429"
+    },
+    "geochem.source_record": {
+      "rows": 31665,
+      "content_md5": "34933acf15e87a2ea5f200f9d3104b06"
+    },
+    "geochem.source_record_reference": {
+      "rows": 31665,
+      "content_md5": "34b6fa17dd65876cf167c2f981f5a253"
+    },
+    "geochem.well": {
+      "rows": 129,
+      "content_md5": "0571786ad8c42ef4c454d0209e155ecd"
+    },
+    "geochem.wellbore_lithostrat_interval": {
+      "rows": 2514,
+      "content_md5": "2ff07125c80810ba1e4807d91492a194"
+    }
+  },
+  "sequences": {
+    "geochem.analysis_run_analysis_run_id_seq": [
+      80662,
+      true
+    ],
+    "geochem.import_batch_import_batch_id_seq": [
+      8,
+      true
+    ],
+    "geochem.lithostrat_unit_lithostrat_unit_id_seq": [
+      51,
+      true
+    ],
+    "geochem.lithostrat_wellbore_lithostrat_wellbore_id_seq": [
+      181,
+      true
+    ],
+    "geochem.reference_document_reference_document_id_seq": [
+      95,
+      true
+    ],
+    "geochem.sample_geology_sample_geology_id_seq": [
+      31596,
+      true
+    ],
+    "geochem.sample_sample_id_seq": [
+      31672,
+      true
+    ],
+    "geochem.source_field_source_field_id_seq": [
+      4262,
+      true
+    ],
+    "geochem.source_record_source_record_id_seq": [
+      31674,
+      true
+    ],
+    "geochem.well_well_id_seq": [
+      133,
+      true
+    ],
+    "geochem.wellbore_lithostrat_interval_wellbore_lithostrat_interval_i_seq": [
+      2515,
+      true
+    ]
+  }
+}
